@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>一樣是健人</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+TC:wght@500;700;900&display=swap');
+
+:root{
+  --bg:#0D0221;
+  --panel:#150330;
+  --panel2:#1F0A45;
+  --pink:#FF2A6D;
+  --cyan:#05D9E8;
+  --text:#F2E9FF;
+  --muted:#8B7AB0;
+  --good:#05D9E8;
+  --ok:#FFD23F;
+  --bad:#FF2A6D;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;overflow:hidden}
+body{
+  background-image:
+    linear-gradient(rgba(5,217,232,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,42,109,0.04) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;padding:20px}
+.screen.active{display:flex}
+
+/* 共用 */
+h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7vw,64px);
+  letter-spacing:2px;line-height:1;text-align:center;
+  background:linear-gradient(90deg,var(--pink),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 12px rgba(255,42,109,.5))}
+.sub{font-family:'Orbitron';text-align:center;color:var(--cyan);letter-spacing:6px;font-size:clamp(10px,2.5vw,14px);margin-top:6px;opacity:.8}
+.btn{font-family:'Noto Sans TC';font-weight:900;font-size:18px;border:none;border-radius:14px;padding:16px 28px;cursor:pointer;
+  background:linear-gradient(135deg,var(--pink),#c01050);color:#fff;letter-spacing:1px;
+  box-shadow:0 0 24px rgba(255,42,109,.45);transition:transform .12s,box-shadow .12s}
+.btn:active{transform:scale(.96)}
+.btn.cyan{background:linear-gradient(135deg,var(--cyan),#039bb0);box-shadow:0 0 24px rgba(5,217,232,.45);color:#04121a}
+.btn.ghost{background:transparent;border:2px solid var(--muted);box-shadow:none;color:var(--text)}
+.input{width:100%;background:var(--panel);border:2px solid var(--panel2);border-radius:12px;padding:14px 16px;color:var(--text);font-size:16px;font-family:'Noto Sans TC';margin-top:10px}
+.input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 14px rgba(5,217,232,.3)}
+
+/* 開始頁 */
+#startScreen{justify-content:center;align-items:center;gap:8px}
+.card{background:rgba(21,3,48,.85);border:1px solid var(--panel2);border-radius:20px;padding:28px;width:min(420px,92vw);margin-top:24px}
+.card .label{color:var(--muted);font-size:13px;font-weight:700;letter-spacing:1px}
+.hint{color:var(--muted);font-size:13px;line-height:1.6;text-align:center;margin-top:18px}
+
+/* 倒數 */
+#readyScreen{justify-content:center;align-items:center}
+#countNum{font-family:'Orbitron';font-weight:900;font-size:30vh;line-height:1;color:var(--cyan);text-shadow:0 0 60px rgba(5,217,232,.7)}
+#readyName{font-family:'Orbitron';color:var(--pink);letter-spacing:4px;margin-bottom:10px;font-size:clamp(16px,4vw,28px)}
+
+/* 遊戲頁 */
+#gameScreen{padding:14px;flex-direction:row;gap:14px}
+.camWrap{position:relative;flex:1.7;border-radius:18px;overflow:hidden;border:2px solid var(--panel2);background:#000;min-width:0}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#overlay{position:absolute;inset:0;width:100%;height:100%}
+.camTag{position:absolute;top:12px;left:12px;z-index:5;background:rgba(13,2,33,.7);border:1px solid var(--pink);border-radius:30px;padding:8px 16px;font-weight:900;font-size:clamp(16px,2.4vw,24px);backdrop-filter:blur(4px)}
+.camTag .emoji{margin-right:6px}
+#camMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:6;text-align:center;
+  background:rgba(13,2,33,.78);color:var(--ok);font-weight:700;font-size:clamp(15px,2.6vw,22px);padding:20px;line-height:1.6}
+#flash{position:absolute;inset:0;z-index:4;opacity:0;pointer-events:none}
+.panel{flex:1;display:flex;flex-direction:column;gap:12px;min-width:230px;max-width:38vw}
+
+/* 計數器(招牌元件) */
+.counter{position:relative;background:var(--panel);border:1px solid var(--panel2);border-radius:18px;padding:16px;text-align:center;flex-shrink:0}
+.counter svg{width:100%;max-width:220px;display:block;margin:0 auto}
+.counter .ring-bg{fill:none;stroke:var(--panel2);stroke-width:10}
+.counter .ring-fg{fill:none;stroke:var(--cyan);stroke-width:10;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--cyan));transition:stroke-dashoffset .25s}
+.counter .num{font-family:'Orbitron';font-weight:900;font-size:clamp(40px,9vw,84px);fill:var(--text)}
+.counter .target{font-family:'Orbitron';font-size:18px;fill:var(--muted)}
+.counter.pulse{animation:pulse .35s ease}
+@keyframes pulse{0%{transform:scale(1)}40%{transform:scale(1.05)}100%{transform:scale(1)}}
+
+.quality{text-align:center;font-family:'Orbitron';font-weight:900;font-size:clamp(22px,5vw,40px);letter-spacing:2px;min-height:1.2em;transition:opacity .2s}
+.quality.good{color:var(--good);text-shadow:0 0 18px var(--good)}
+.quality.ok{color:var(--ok);text-shadow:0 0 18px var(--ok)}
+.quality.bad{color:var(--bad);text-shadow:0 0 18px var(--bad)}
+
+/* 示範影片 */
+.demo{background:var(--panel);border:1px solid var(--panel2);border-radius:16px;overflow:hidden;flex-shrink:0}
+.demo .head{padding:8px 14px;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px}
+.demo video{width:100%;display:block;background:#000;max-height:22vh}
+.demo .placeholder{height:14vh;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--cyan);font-weight:700;font-size:14px;padding:10px;line-height:1.5}
+
+/* 自製示範動畫(火柴人模板,之後可換 Seedance 影片) */
+.demoBox{display:flex;align-items:center;justify-content:center;height:18vh;background:radial-gradient(circle at 50% 38%,rgba(5,217,232,.08),transparent 70%)}
+.demoBox video{width:100%;height:100%;object-fit:contain;background:#000;border-radius:8px}
+.fig{height:100%;max-height:18vh;width:auto}
+.fig line{stroke-width:5;stroke-linecap:round}
+.fig .torso,.fig .leg{stroke:var(--cyan);filter:drop-shadow(0 0 4px var(--cyan))}
+.fig .arm{stroke:var(--pink);filter:drop-shadow(0 0 4px var(--pink))}
+.fig .head{fill:var(--pink);filter:drop-shadow(0 0 5px var(--pink))}
+.fig .arm,.fig .legL,.fig .legR,.fig .upper{transform-box:view-box}
+.fig .arm{transform-origin:50px 40px}
+.fig .legL,.fig .legR{transform-origin:50px 78px}
+.fig .upper{transform-origin:50px 55px}
+.ex-squat .upper{animation:sqUp 1.4s ease-in-out infinite}
+.ex-squat .legL{animation:sqLL 1.4s ease-in-out infinite}
+.ex-squat .legR{animation:sqLR 1.4s ease-in-out infinite}
+@keyframes sqUp{0%,100%{transform:translateY(0)}50%{transform:translateY(14px)}}
+@keyframes sqLL{0%,100%{transform:rotate(0)}50%{transform:rotate(-12deg)}}
+@keyframes sqLR{0%,100%{transform:rotate(0)}50%{transform:rotate(12deg)}}
+.ex-jumpingjack .armL{animation:jjA 1s ease-in-out infinite}
+.ex-jumpingjack .armR{animation:jjB 1s ease-in-out infinite}
+.ex-jumpingjack .legL{animation:jjLL 1s ease-in-out infinite}
+.ex-jumpingjack .legR{animation:jjLR 1s ease-in-out infinite}
+@keyframes jjA{0%,100%{transform:rotate(0)}50%{transform:rotate(150deg)}}
+@keyframes jjB{0%,100%{transform:rotate(0)}50%{transform:rotate(-150deg)}}
+@keyframes jjLL{0%,100%{transform:rotate(0)}50%{transform:rotate(-16deg)}}
+@keyframes jjLR{0%,100%{transform:rotate(0)}50%{transform:rotate(16deg)}}
+.ex-armraise .armL{animation:arA 1.4s ease-in-out infinite}
+.ex-armraise .armR{animation:arB 1.4s ease-in-out infinite}
+@keyframes arA{0%,100%{transform:rotate(0)}50%{transform:rotate(140deg)}}
+@keyframes arB{0%,100%{transform:rotate(0)}50%{transform:rotate(-140deg)}}
+.ex-kneeraise .legL{animation:knL 2s ease-in-out infinite}
+.ex-kneeraise .legR{animation:knR 2s ease-in-out infinite}
+@keyframes knL{0%,40%,100%{transform:rotate(0)}20%{transform:rotate(42deg)}}
+@keyframes knR{0%,60%,100%{transform:rotate(0)}80%{transform:rotate(-42deg)}}
+.ex-lunge .legL{animation:luL 1.6s ease-in-out infinite}
+.ex-lunge .legR{animation:luR 1.6s ease-in-out infinite}
+.ex-lunge .upper{animation:luUp 1.6s ease-in-out infinite}
+@keyframes luL{0%,100%{transform:rotate(0)}50%{transform:rotate(34deg)}}
+@keyframes luR{0%,100%{transform:rotate(0)}50%{transform:rotate(-12deg)}}
+@keyframes luUp{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){ .fig *{animation:none!important} }
+
+/* 任務列表 */
+.tasks{background:var(--panel);border:1px solid var(--panel2);border-radius:16px;padding:14px;flex:1;overflow-y:auto}
+.tasks .t{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-weight:700}
+.tasks .t:last-child{border:none}
+.tasks .t.done{color:var(--cyan)}
+.tasks .t .c{font-family:'Orbitron';font-size:14px;color:var(--muted)}
+.tasks .t.done .c{color:var(--cyan)}
+.scoreRow{display:flex;justify-content:space-between;align-items:center;background:var(--panel2);border-radius:12px;padding:10px 16px;font-weight:900;flex-shrink:0}
+.scoreRow .v{font-family:'Orbitron';color:var(--cyan);font-size:22px}
+
+/* 結算 */
+#resultScreen{justify-content:center;align-items:center;gap:14px}
+#rating{font-family:'Orbitron';font-weight:900;font-size:28vh;line-height:.9}
+#rating.S{color:#FFD23F;text-shadow:0 0 50px #FFD23F}
+#rating.A{color:var(--cyan);text-shadow:0 0 50px var(--cyan)}
+#rating.B{color:var(--pink);text-shadow:0 0 40px var(--pink)}
+#rating.C{color:var(--muted)}
+.statline{display:flex;gap:24px;font-family:'Orbitron'}
+.statline .s{text-align:center}
+.statline .s .n{font-size:clamp(24px,5vw,40px);color:var(--text)}
+.statline .s .l{font-size:11px;color:var(--muted);letter-spacing:1px}
+.lb{background:var(--panel);border:1px solid var(--panel2);border-radius:16px;padding:14px 18px;width:min(440px,92vw);max-height:30vh;overflow-y:auto}
+.lb h3{font-family:'Orbitron';color:var(--cyan);font-size:14px;letter-spacing:2px;margin-bottom:8px}
+.lb .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-weight:700;font-size:14px}
+.lb .row .rk{font-family:'Orbitron';color:var(--pink);width:28px}
+.lb .row .nm{flex:1;padding:0 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .row .sc{font-family:'Orbitron';color:var(--cyan)}
+.btnRow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+.toggle{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;font-weight:700;margin-top:14px;cursor:pointer;user-select:none}
+.toggle .box{width:42px;height:24px;border-radius:14px;background:var(--panel2);position:relative;transition:background .2s}
+.toggle .box::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:var(--muted);top:3px;left:3px;transition:.2s}
+.toggle.on .box{background:var(--cyan)}
+.toggle.on .box::after{left:21px;background:#04121a}
+
+@media (orientation:portrait) and (max-width:820px){
+  #gameScreen{flex-direction:column}
+  .panel{max-width:none;min-width:0}
+  .rotateHint{display:block}
+}
+.rotateHint{display:none;position:fixed;bottom:10px;left:0;right:0;text-align:center;color:var(--ok);font-size:12px;z-index:50}
+</style>
+</head>
+<body>
+
+<!-- 開始頁 -->
+<section id="startScreen" class="screen active">
+  <h1 class="logo">一樣是健人</h1>
+  <div class="sub">MOTION FITNESS</div>
+  <div class="card">
+    <div class="label">玩家名稱</div>
+    <input id="inName" class="input" placeholder="輸入暱稱" maxlength="12">
+    <div class="label" style="margin-top:14px">手機號碼</div>
+    <input id="inPhone" class="input" placeholder="0900000000" inputmode="numeric" maxlength="10">
+    <button id="btnStart" class="btn cyan" style="width:100%;margin-top:20px">開始挑戰</button>
+    <div id="voiceToggle" class="toggle on"><div class="box"></div>語音報數</div>
+  </div>
+  <div class="hint">需要相機權限・建議裝置架在約 2 公尺外拍到全身<br>橫向、光線充足效果最好</div>
+</section>
+
+<!-- 倒數頁 -->
+<section id="readyScreen" class="screen">
+  <div id="readyName">準備</div>
+  <div id="countNum">3</div>
+</section>
+
+<!-- 遊戲頁 -->
+<section id="gameScreen" class="screen">
+  <div class="camWrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <div class="camTag"><span class="emoji" id="exEmoji">🏋️</span><span id="exName">深蹲</span></div>
+    <div id="flash"></div>
+    <div id="camMsg">啟動相機中…</div>
+  </div>
+  <div class="panel">
+    <div class="counter" id="counter">
+      <svg viewBox="0 0 240 240">
+        <circle class="ring-bg" cx="120" cy="120" r="100"></circle>
+        <circle class="ring-fg" id="ring" cx="120" cy="120" r="100" transform="rotate(-90 120 120)"></circle>
+        <text class="num" id="repNum" x="120" y="120" text-anchor="middle" dominant-baseline="central">0</text>
+        <text class="target" id="repTarget" x="120" y="170" text-anchor="middle">/ 0</text>
+      </svg>
+    </div>
+    <div class="quality" id="quality">&nbsp;</div>
+    <div class="demo">
+      <div class="head">動作示範</div>
+      <div id="demoBox" class="demoBox"></div>
+    </div>
+    <div class="tasks" id="tasks"></div>
+    <div class="scoreRow"><span id="levelName">第一關</span><span>分數 <span class="v" id="score">0</span></span></div>
+  </div>
+  <div class="rotateHint">↻ 建議橫向擺放</div>
+</section>
+
+<!-- 結算頁 -->
+<section id="resultScreen" class="screen">
+  <div id="rating" class="C">C</div>
+  <div class="statline">
+    <div class="s"><div class="n" id="rScore">0</div><div class="l">SCORE</div></div>
+    <div class="s"><div class="n" id="rReps">0</div><div class="l">REPS</div></div>
+    <div class="s"><div class="n" id="rAcc">0%</div><div class="l">標準率</div></div>
+  </div>
+  <div class="lb"><h3>排行榜 TOP 10</h3><div id="lbList">載入中…</div></div>
+  <div class="btnRow">
+    <button id="btnReplay" class="btn cyan">再玩一次</button>
+    <button id="btnHome" class="btn ghost">回首頁</button>
+  </div>
+</section>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18";
+
+/* ===================== 設定區(部署後填這裡) ===================== */
+const JR = {
+  // Supabase(排行榜)。填入 anon key 後排行榜才會上傳/讀取;留空則只顯示本機分數
+  supabaseUrl: 'https://hhcubvixldieuwdeqnwc.supabase.co',
+  supabaseAnonKey: '',
+  // Seedance 預生成示範影片網址(每個動作一支;留空則顯示文字提示)
+  demoVideos: {
+    squat: '',
+    jumpingjack: '',
+    kneeraise: '',
+    lunge: '',
+    armraise: ''
+  }
+};
+/* ============================================================== */
+
+// 身體節點索引(MediaPipe 33 點)
+const LM = {
+  nose:0, lSh:11, rSh:12, lEl:13, rEl:14, lWr:15, rWr:16,
+  lHip:23, rHip:24, lKn:25, rKn:26, lAn:27, rAn:28
+};
+
+function angle(a,b,c){
+  const abx=a.x-b.x, aby=a.y-b.y, cbx=c.x-b.x, cby=c.y-b.y;
+  const dot=abx*cbx+aby*cby;
+  const mag=Math.hypot(abx,aby)*Math.hypot(cbx,cby);
+  if(mag===0) return 180;
+  return Math.acos(Math.max(-1,Math.min(1,dot/mag)))*180/Math.PI;
+}
+function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+
+// 動作定義:每個都有 process(lm) -> {rep,quality,progress}
+const EXERCISES = {
+  squat:{
+    name:'深蹲', emoji:'🏋️',
+    reset(){ this.phase='up'; this.minA=180; },
+    process(p){
+      const a=(angle(p[LM.lHip],p[LM.lKn],p[LM.lAn])+angle(p[LM.rHip],p[LM.rKn],p[LM.rAn]))/2;
+      let rep=false, quality=null;
+      this.minA=Math.min(this.minA,a);
+      if(this.phase==='up' && a<110){ this.phase='down'; this.minA=a; }
+      else if(this.phase==='down' && a>150){
+        this.phase='up'; rep=true;
+        quality=this.minA<=95?'good':this.minA<=118?'ok':'bad';
+        this.minA=180;
+      }
+      const progress=Math.max(0,Math.min(1,(170-a)/(170-90)));
+      return {rep,quality,progress};
+    }
+  },
+  jumpingjack:{
+    name:'開合跳', emoji:'🤸',
+    reset(){ this.phase='closed'; this.opened=false; },
+    process(p){
+      const shW=dist(p[LM.lSh],p[LM.rSh])||0.1;
+      const ankW=Math.abs(p[LM.lAn].x-p[LM.rAn].x);
+      const armsUp=(p[LM.lWr].y<p[LM.lSh].y)&&(p[LM.rWr].y<p[LM.rSh].y);
+      const legsApart=ankW>shW*1.6;
+      const open=armsUp&&legsApart;
+      let rep=false, quality=null;
+      if(this.phase==='closed' && open){ this.phase='open'; this.opened=true; }
+      else if(this.phase==='open' && !armsUp && !legsApart){
+        this.phase='closed'; rep=true;
+        const full=(p[LM.lWr].y<p[LM.nose].y)&&(p[LM.rWr].y<p[LM.nose].y);
+        quality=full?'good':(ankW>shW*1.4?'ok':'bad');
+      }
+      const progress=open?1:Math.min(1,ankW/(shW*1.6));
+      return {rep,quality,progress};
+    }
+  },
+  kneeraise:{
+    name:'原地抬膝', emoji:'🦵',
+    reset(){ this.up=false; },
+    process(p){
+      const hipY=(p[LM.lHip].y+p[LM.rHip].y)/2;
+      const kneeUp=(p[LM.lKn].y<hipY-0.02)||(p[LM.rKn].y<hipY-0.02);
+      const highest=Math.min(p[LM.lKn].y,p[LM.rKn].y);
+      let rep=false, quality=null;
+      if(!this.up && kneeUp){
+        this.up=true; rep=true;
+        quality=highest<hipY-0.06?'good':highest<hipY?'ok':'bad';
+      } else if(this.up && !kneeUp){ this.up=false; }
+      const progress=Math.max(0,Math.min(1,(hipY-highest+0.05)/0.15));
+      return {rep,quality,progress};
+    }
+  },
+  lunge:{
+    name:'弓箭步', emoji:'🏃',
+    reset(){ this.phase='up'; this.minA=180; },
+    process(p){
+      const la=angle(p[LM.lHip],p[LM.lKn],p[LM.lAn]);
+      const ra=angle(p[LM.rHip],p[LM.rKn],p[LM.rAn]);
+      const minA=Math.min(la,ra), maxA=Math.max(la,ra);
+      let rep=false, quality=null;
+      this.minA=Math.min(this.minA,minA);
+      if(this.phase==='up' && minA<115 && maxA>140){ this.phase='down'; this.minA=minA; }
+      else if(this.phase==='down' && minA>150){
+        this.phase='up'; rep=true;
+        quality=this.minA<=100?'good':this.minA<=120?'ok':'bad';
+        this.minA=180;
+      }
+      const progress=Math.max(0,Math.min(1,(170-minA)/(170-90)));
+      return {rep,quality,progress};
+    }
+  },
+  armraise:{
+    name:'手臂上舉', emoji:'🙆',
+    reset(){ this.up=false; },
+    process(p){
+      const up=(p[LM.lWr].y<p[LM.nose].y)&&(p[LM.rWr].y<p[LM.nose].y);
+      const down=(p[LM.lWr].y>p[LM.lSh].y)&&(p[LM.rWr].y>p[LM.rSh].y);
+      let rep=false, quality=null;
+      if(!this.up && up){
+        this.up=true; rep=true;
+        const high=(p[LM.lWr].y<p[LM.nose].y-0.08)&&(p[LM.rWr].y<p[LM.nose].y-0.08);
+        quality=high?'good':'ok';
+      } else if(this.up && down){ this.up=false; }
+      const shY=(p[LM.lSh].y+p[LM.rSh].y)/2;
+      const wrY=(p[LM.lWr].y+p[LM.rWr].y)/2;
+      const progress=Math.max(0,Math.min(1,(shY-wrY+0.1)/0.3));
+      return {rep,quality,progress};
+    }
+  }
+};
+
+// 關卡:每關一組動作目標
+const LEVELS=[
+  { name:'第一關・熱身', tasks:[{ex:'squat',target:8},{ex:'jumpingjack',target:12}] },
+  { name:'第二關・核心', tasks:[{ex:'kneeraise',target:16},{ex:'squat',target:12}] },
+  { name:'第三關・全身', tasks:[{ex:'lunge',target:8},{ex:'jumpingjack',target:16},{ex:'armraise',target:12}] }
+];
+
+// 連線到單一關卡的所有任務,串成一條序列
+function buildSequence(level){
+  const seq=[];
+  level.tasks.forEach(t=>seq.push({ex:t.ex,target:t.target,count:0,quality:{good:0,ok:0,bad:0}}));
+  return seq;
+}
+
+/* ---------------- 狀態 ---------------- */
+const state={
+  player:{name:'',phone:''},
+  voice:true,
+  levelIdx:0,
+  seq:[], taskIdx:0,
+  score:0, totalReps:0, goodReps:0,
+  running:false
+};
+
+/* ---------------- 音效(Web Audio) ---------------- */
+let actx=null;
+function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+function beep(freq,dur,type='sine',vol=0.2){
+  try{
+    const c=audio(), o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.value=freq; o.connect(g); g.connect(c.destination);
+    g.gain.setValueAtTime(vol,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+dur);
+    o.start(); o.stop(c.currentTime+dur);
+  }catch(e){}
+}
+function sfxGood(){ beep(880,0.12,'triangle'); setTimeout(()=>beep(1320,0.12,'triangle'),60); }
+function sfxOk(){ beep(660,0.12,'sine'); }
+function sfxBad(){ beep(180,0.18,'sawtooth',0.15); }
+function sfxLevel(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.18,'triangle'),i*120)); }
+function speak(text){
+  if(!state.voice||!('speechSynthesis' in window)) return;
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='zh-TW'; u.rate=1.15; speechSynthesis.speak(u); }catch(e){}
+}
+
+/* ---------------- 畫面切換 ---------------- */
+const screens={start:'startScreen',ready:'readyScreen',game:'gameScreen',result:'resultScreen'};
+function show(name){
+  Object.values(screens).forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById(screens[name]).classList.add('active');
+}
+
+/* ---------------- MediaPipe ---------------- */
+let landmarker=null, video=null, canvas=null, ctx=null, rafId=null, lastTs=-1;
+const SKELETON=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+
+async function initLandmarker(){
+  const fileset=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm");
+  landmarker=await PoseLandmarker.createFromOptions(fileset,{
+    baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate:"GPU" },
+    runningMode:"VIDEO", numPoses:1
+  });
+}
+
+async function startCamera(){
+  video=document.getElementById('video');
+  canvas=document.getElementById('overlay');
+  ctx=canvas.getContext('2d');
+  const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:1280,height:720},audio:false});
+  video.srcObject=stream;
+  await video.play();
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+}
+
+function bodyVisible(lm){
+  const keys=[LM.lSh,LM.rSh,LM.lHip,LM.rHip,LM.lKn,LM.rKn,LM.lAn,LM.rAn];
+  let v=0; keys.forEach(k=>v+=(lm[k].visibility||0));
+  return v/keys.length>0.5;
+}
+
+function drawSkeleton(lm){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save();
+  ctx.translate(canvas.width,0); ctx.scale(-1,1); // 鏡像對齊畫面
+  ctx.lineWidth=4; ctx.strokeStyle='#05D9E8'; ctx.shadowColor='#05D9E8'; ctx.shadowBlur=8;
+  SKELETON.forEach(([a,b])=>{
+    ctx.beginPath();
+    ctx.moveTo(lm[a].x*canvas.width,lm[a].y*canvas.height);
+    ctx.lineTo(lm[b].x*canvas.width,lm[b].y*canvas.height);
+    ctx.stroke();
+  });
+  ctx.fillStyle='#FF2A6D'; ctx.shadowColor='#FF2A6D';
+  lm.forEach((pt,i)=>{ if(i>10){ ctx.beginPath(); ctx.arc(pt.x*canvas.width,pt.y*canvas.height,6,0,Math.PI*2); ctx.fill(); } });
+  ctx.restore();
+}
+
+/* ---------------- 遊戲迴圈 ---------------- */
+function currentTask(){ return state.seq[state.taskIdx]; }
+
+function loop(){
+  rafId=requestAnimationFrame(loop);
+  if(!landmarker||!video||video.readyState<2) return;
+  const ts=performance.now();
+  if(ts===lastTs) return; lastTs=ts;
+  const res=landmarker.detectForVideo(video,ts);
+  if(!res.landmarks||res.landmarks.length===0){ setCamMsg('看不到人・請站到鏡頭前'); return; }
+  const lm=res.landmarks[0];
+  drawSkeleton(lm);
+  if(!bodyVisible(lm)){ setCamMsg('請站遠一點・讓鏡頭拍到全身'); return; }
+  setCamMsg('');
+
+  const task=currentTask(); if(!task||!state.running) return;
+  const ex=EXERCISES[task.ex];
+  const out=ex.process(lm);
+  setRing(out.progress);
+  if(out.rep){ onRep(task,out.quality); }
+}
+
+function onRep(task,quality){
+  task.count++; state.totalReps++;
+  task.quality[quality]++;
+  if(quality==='good'){ state.score+=100; state.goodReps++; sfxGood(); flash('#05D9E8'); }
+  else if(quality==='ok'){ state.score+=60; sfxOk(); flash('#FFD23F'); }
+  else { state.score+=20; sfxBad(); flash('#FF2A6D'); }
+  speak(String(task.count));
+  showQuality(quality);
+  updateHUD();
+  document.getElementById('counter').classList.remove('pulse'); void document.getElementById('counter').offsetWidth;
+  document.getElementById('counter').classList.add('pulse');
+  if(task.count>=task.target) nextTask();
+}
+
+function nextTask(){
+  state.taskIdx++;
+  if(state.taskIdx>=state.seq.length){ finishLevel(); return; }
+  sfxLevel();
+  loadTaskUI();
+}
+
+function finishLevel(){
+  state.running=false;
+  cancelAnimationFrame(rafId);
+  if(video&&video.srcObject){ video.srcObject.getTracks().forEach(t=>t.stop()); }
+  const acc=state.totalReps?Math.round(state.goodReps/state.totalReps*100):0;
+  let rating='C';
+  if(acc>=85&&state.score>=2000) rating='S';
+  else if(acc>=70) rating='A';
+  else if(acc>=50) rating='B';
+  document.getElementById('rScore').textContent=state.score;
+  document.getElementById('rReps').textContent=state.totalReps;
+  document.getElementById('rAcc').textContent=acc+'%';
+  const r=document.getElementById('rating'); r.className=rating; r.textContent=rating;
+  sfxLevel();
+  show('result');
+  submitScore(rating,acc).finally(loadLeaderboard);
+}
+
+/* ---------------- HUD ---------------- */
+function setCamMsg(m){ const el=document.getElementById('camMsg'); el.textContent=m; el.style.display=m?'flex':'none'; }
+function setRing(p){
+  const r=100, circ=2*Math.PI*r;
+  document.getElementById('ring').style.strokeDasharray=circ;
+  document.getElementById('ring').style.strokeDashoffset=circ*(1-Math.max(0,Math.min(1,p)));
+}
+let qTimer=null;
+function showQuality(q){
+  const el=document.getElementById('quality');
+  const txt={good:'標準!',ok:'普通',bad:'不標準'};
+  el.className='quality '+q; el.textContent=txt[q];
+  clearTimeout(qTimer); qTimer=setTimeout(()=>{ el.textContent='\u00a0'; el.className='quality'; },700);
+}
+function flash(color){
+  const f=document.getElementById('flash');
+  f.style.background='radial-gradient(circle,'+color+'55,transparent 70%)';
+  f.style.transition='none'; f.style.opacity='1';
+  requestAnimationFrame(()=>{ f.style.transition='opacity .4s'; f.style.opacity='0'; });
+}
+function updateHUD(){
+  const task=currentTask();
+  document.getElementById('repNum').textContent=task.count;
+  document.getElementById('repTarget').textContent='/ '+task.target;
+  document.getElementById('score').textContent=state.score;
+  renderTasks();
+}
+function renderTasks(){
+  const box=document.getElementById('tasks'); box.innerHTML='';
+  state.seq.forEach((t,i)=>{
+    const div=document.createElement('div');
+    div.className='t'+(i<state.taskIdx||t.count>=t.target?' done':'');
+    div.innerHTML='<span>'+EXERCISES[t.ex].emoji+' '+EXERCISES[t.ex].name+'</span><span class="c">'+Math.min(t.count,t.target)+'/'+t.target+'</span>';
+    box.appendChild(div);
+  });
+}
+function figureSVG(exKey){
+  return '<svg class="fig ex-'+exKey+'" viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg">'+
+    '<g class="upper">'+
+      '<circle class="head" cx="50" cy="18" r="9"></circle>'+
+      '<line class="torso" x1="50" y1="27" x2="50" y2="78"></line>'+
+      '<line class="arm armL" x1="50" y1="40" x2="32" y2="62"></line>'+
+      '<line class="arm armR" x1="50" y1="40" x2="68" y2="62"></line>'+
+    '</g>'+
+    '<line class="leg legL" x1="50" y1="78" x2="40" y2="118"></line>'+
+    '<line class="leg legR" x1="50" y1="78" x2="60" y2="118"></line>'+
+  '</svg>';
+}
+function loadTaskUI(){
+  const task=currentTask();
+  const ex=EXERCISES[task.ex]; ex.reset();
+  document.getElementById('exEmoji').textContent=ex.emoji;
+  document.getElementById('exName').textContent=ex.name;
+  document.getElementById('repNum').textContent='0';
+  document.getElementById('repTarget').textContent='/ '+task.target;
+  setRing(0);
+  // 示範:有 Seedance 影片就播影片,否則用自製火柴人動畫
+  const box=document.getElementById('demoBox');
+  const url=JR.demoVideos[task.ex];
+  if(url){ box.innerHTML='<video autoplay loop muted playsinline src="'+url+'"></video>'; }
+  else { box.innerHTML=figureSVG(task.ex); }
+  renderTasks();
+  document.getElementById('levelName').textContent=LEVELS[state.levelIdx].name;
+}
+
+/* ---------------- Supabase 排行榜 ---------------- */
+async function submitScore(rating,acc){
+  if(!JR.supabaseAnonKey) return;
+  try{
+    await fetch(JR.supabaseUrl+'/rest/v1/jr_scores',{
+      method:'POST',
+      headers:{ 'apikey':JR.supabaseAnonKey,'Authorization':'Bearer '+JR.supabaseAnonKey,'Content-Type':'application/json','Prefer':'return=minimal' },
+      body:JSON.stringify({ jr_name:state.player.name, jr_phone:state.player.phone, jr_score:state.score, jr_reps:state.totalReps, jr_accuracy:acc, jr_rating:rating, jr_level:state.levelIdx+1 })
+    });
+  }catch(e){ console.warn('上傳失敗',e); }
+}
+async function loadLeaderboard(){
+  const list=document.getElementById('lbList');
+  if(!JR.supabaseAnonKey){ list.innerHTML='<div class="row"><span class="nm">設定 Supabase 後顯示排行榜</span></div>'; return; }
+  try{
+    const r=await fetch(JR.supabaseUrl+'/rest/v1/jr_scores?select=jr_name,jr_score,jr_rating&order=jr_score.desc&limit=10',{
+      headers:{ 'apikey':JR.supabaseAnonKey,'Authorization':'Bearer '+JR.supabaseAnonKey }
+    });
+    const rows=await r.json();
+    if(!rows.length){ list.innerHTML='<div class="row"><span class="nm">還沒有紀錄・當第一名!</span></div>'; return; }
+    list.innerHTML=rows.map((x,i)=>'<div class="row"><span class="rk">'+(i+1)+'</span><span class="nm">'+(x.jr_name||'匿名')+'</span><span class="sc">'+x.jr_score+'</span></div>').join('');
+  }catch(e){ list.innerHTML='<div class="row"><span class="nm">排行榜載入失敗</span></div>'; }
+}
+
+/* ---------------- 流程控制 ---------------- */
+async function startGame(){
+  state.score=0; state.totalReps=0; state.goodReps=0;
+  state.levelIdx=0; state.taskIdx=0;
+  state.seq=buildSequence(LEVELS[0]);
+  state.running=false;
+  show('ready');
+  document.getElementById('readyName').textContent=state.player.name+'・準備';
+  // 倒數同時啟動相機與模型
+  try{
+    if(!landmarker){ document.getElementById('countNum').textContent='載入中'; await initLandmarker(); }
+    await startCamera();
+  }catch(e){
+    alert('無法啟動相機或模型:'+e.message+'\n請確認相機權限,且用 https 開啟(GitHub Pages 即可)');
+    show('start'); return;
+  }
+  show('game'); loadTaskUI();
+  let n=3; const cn=document.getElementById('countNum'); cn.textContent='3'; show('ready');
+  const iv=setInterval(()=>{
+    n--; beep(440,0.1);
+    if(n<=0){ clearInterval(iv); cn.textContent='GO'; beep(880,0.2); show('game'); state.running=true; lastTs=-1; loop(); }
+    else cn.textContent=n;
+  },900);
+}
+
+/* ---------------- 事件 ---------------- */
+document.getElementById('btnStart').addEventListener('click',()=>{
+  const name=document.getElementById('inName').value.trim();
+  const phone=document.getElementById('inPhone').value.trim();
+  if(!name){ alert('請輸入暱稱'); return; }
+  if(!/^09\d{8}$/.test(phone)){ alert('請輸入正確手機號碼'); return; }
+  state.player={name,phone};
+  audio(); // 解鎖音訊
+  startGame();
+});
+document.getElementById('voiceToggle').addEventListener('click',function(){
+  this.classList.toggle('on'); state.voice=this.classList.contains('on');
+});
+document.getElementById('btnReplay').addEventListener('click',startGame);
+document.getElementById('btnHome').addEventListener('click',()=>show('start'));
+
+window.addEventListener('beforeunload',()=>{ if(video&&video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop()); });
+</script>
+</body>
+</html>
