@@ -131,6 +131,21 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
 @keyframes luUp{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
 @media (prefers-reduced-motion:reduce){ .fig *{animation:none!important} }
 
+/* 星星爆發動畫 */
+.star-p{
+  position:fixed;pointer-events:none;z-index:200;
+  transform-origin:center center;
+  animation:starBurst var(--dur,0.75s) ease-out forwards;
+  will-change:transform,opacity;
+  line-height:1;
+}
+@keyframes starBurst{
+  0%{transform:translate(-50%,-50%) translate(0,0) scale(1) rotate(0deg);opacity:1}
+  60%{opacity:1}
+  100%{transform:translate(-50%,-50%) translate(var(--sx),var(--sy)) scale(0.15) rotate(var(--rot));opacity:0}
+}
+@media (prefers-reduced-motion:reduce){.star-p{display:none}}
+
 /* 任務列表 */
 .tasks{background:var(--panel);border:1px solid var(--panel2);border-radius:16px;padding:14px;flex:1;overflow-y:auto}
 .tasks .t{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-weight:700}
@@ -487,6 +502,36 @@ function loop(){
   if(out.rep){ onRep(task,out.quality); }
 }
 
+function spawnStars(quality){
+  const cfg={good:{color:'#05D9E8',count:14,size:[18,28]},ok:{color:'#FFD23F',count:9,size:[14,22]},bad:{color:'#FF2A6D',count:6,size:[12,18]}};
+  const {color,count,size}=cfg[quality]||cfg.bad;
+  const counterEl=document.getElementById('counter');
+  const r=counterEl.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  const chars=['★','✦','✧','⭐','💫'];
+  for(let i=0;i<count;i++){
+    const el=document.createElement('span');
+    el.className='star-p';
+    const angle=(i/count)*Math.PI*2+(Math.random()-0.5)*0.6;
+    const dist=90+Math.random()*110;
+    const sx=Math.cos(angle)*dist, sy=Math.sin(angle)*dist;
+    const fs=size[0]+Math.random()*(size[1]-size[0]);
+    const dur=0.55+Math.random()*0.35;
+    const rot=(Math.random()*720-360)+'deg';
+    el.style.cssText=[
+      'left:'+cx+'px','top:'+cy+'px',
+      'font-size:'+fs+'px','color:'+color,
+      'text-shadow:0 0 8px '+color,
+      '--sx:'+sx+'px','--sy:'+sy+'px',
+      '--dur:'+dur+'s','--rot:'+rot,
+      'animation-delay:'+(Math.random()*0.08)+'s'
+    ].join(';');
+    el.textContent=chars[Math.floor(Math.random()*chars.length)];
+    document.body.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove(),{once:true});
+  }
+}
+
 function onRep(task,quality){
   task.count++; state.totalReps++;
   task.quality[quality]++;
@@ -495,6 +540,7 @@ function onRep(task,quality){
   else { state.score+=20; sfxBad(); flash('#FF2A6D'); }
   speak(String(task.count));
   showQuality(quality);
+  spawnStars(quality);
   updateHUD();
   document.getElementById('counter').classList.remove('pulse'); void document.getElementById('counter').offsetWidth;
   document.getElementById('counter').classList.add('pulse');
