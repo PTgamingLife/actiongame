@@ -494,6 +494,7 @@ function loop(){
   drawSkeleton(lm);
   if(!bodyVisible(lm)){ setCamMsg('請站遠一點・讓鏡頭拍到全身'); return; }
   setCamMsg('');
+  if(state.running) drawBalloon(lm);
 
   const task=currentTask(); if(!task||!state.running) return;
   const ex=EXERCISES[task.ex];
@@ -532,6 +533,83 @@ function spawnStars(quality){
   }
 }
 
+/* ---------------- 氣球 ---------------- */
+const BLN_COLORS=['#FF6B6B','#FF9F43','#FECA57','#26de81','#45aaf2','#fd79a8','#a29bfe','#00cec9'];
+const bln={r:42,nextR:42,step:18,maxR:190,pop:false,popT:0,col:0};
+
+function resetBalloon(){ bln.r=42; bln.nextR=42; bln.pop=false; bln.col=0; }
+
+function sfxPop(){
+  beep(700,0.03,'square',0.22);
+  setTimeout(()=>beep(350,0.07,'sawtooth',0.12),22);
+}
+
+function balloonPop(){
+  if(bln.pop) return;
+  bln.pop=true; bln.popT=performance.now();
+  bln.nextR=Math.min(bln.r+bln.step,bln.maxR);
+  bln.col=(bln.col+1)%BLN_COLORS.length;
+  sfxPop();
+}
+
+function drawBalloon(lm){
+  const POP=420;
+  let drawR=bln.r, alpha=1, isPopping=bln.pop;
+  if(bln.pop){
+    const t=Math.min(1,(performance.now()-bln.popT)/POP);
+    if(t>=1){ bln.pop=false; bln.r=bln.nextR; isPopping=false; drawR=bln.r; }
+    else{ drawR=bln.r*(1+t*0.9); alpha=1-t; isPopping=true; }
+  }
+  const nose=lm[LM.nose];
+  const lSh=lm[LM.lSh], rSh=lm[LM.rSh];
+  const cx=((lSh.x+rSh.x)/2)*canvas.width;
+  const cy=Math.max(drawR+8, nose.y*canvas.height-drawR-12);
+  const wobble=isPopping?0:Math.sin(performance.now()/380)*4;
+  const color=BLN_COLORS[bln.col%BLN_COLORS.length];
+  ctx.save();
+  ctx.translate(canvas.width,0); ctx.scale(-1,1);
+  ctx.globalAlpha=alpha;
+  if(isPopping){
+    // 爆炸射線
+    ctx.lineWidth=3; ctx.shadowBlur=0;
+    for(let i=0;i<12;i++){
+      const ang=(i/12)*Math.PI*2;
+      const r1=drawR*0.55, r2=drawR*1.35;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(ang)*r1,cy+Math.sin(ang)*r1);
+      ctx.lineTo(cx+Math.cos(ang)*r2,cy+Math.sin(ang)*r2);
+      ctx.strokeStyle=color; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(cx,cy,drawR,0,Math.PI*2);
+    ctx.fillStyle=color+'55'; ctx.fill();
+  } else {
+    // 陰影
+    ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(cx+6,cy+6,drawR,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.fill();
+    // 氣球主體
+    ctx.shadowColor=color; ctx.shadowBlur=14;
+    ctx.beginPath(); ctx.arc(cx+wobble,cy+wobble*0.3,drawR,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    ctx.shadowBlur=0;
+    // 亮點
+    ctx.beginPath(); ctx.arc(cx-drawR*0.3+wobble,cy-drawR*0.3,drawR*0.18,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.58)'; ctx.fill();
+    // 小亮點
+    ctx.beginPath(); ctx.arc(cx-drawR*0.1+wobble,cy-drawR*0.5,drawR*0.07,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fill();
+    // 打結
+    ctx.beginPath(); ctx.arc(cx+wobble,cy+drawR+5,5,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    // 細線
+    ctx.beginPath();
+    ctx.moveTo(cx+wobble,cy+drawR+10);
+    ctx.bezierCurveTo(cx+wobble+14,cy+drawR+30,cx-10,cy+drawR+48,cx,cy+drawR+64);
+    ctx.strokeStyle='rgba(255,255,255,0.45)'; ctx.lineWidth=1.5; ctx.stroke();
+  }
+  ctx.globalAlpha=1; ctx.restore();
+}
+
 function onRep(task,quality){
   task.count++; state.totalReps++;
   task.quality[quality]++;
@@ -541,6 +619,7 @@ function onRep(task,quality){
   speak(String(task.count));
   showQuality(quality);
   spawnStars(quality);
+  balloonPop();
   updateHUD();
   document.getElementById('counter').classList.remove('pulse'); void document.getElementById('counter').offsetWidth;
   document.getElementById('counter').classList.add('pulse');
@@ -667,6 +746,7 @@ async function startGame(){
   state.levelIdx=0; state.taskIdx=0;
   state.seq=buildSequence(LEVELS[0]);
   state.running=false;
+  resetBalloon();
   show('ready');
   document.getElementById('readyName').textContent=state.player.name+'・準備';
   // 倒數同時啟動相機與模型
