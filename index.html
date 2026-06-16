@@ -187,6 +187,36 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
   .rotateHint{display:block}
 }
 .rotateHint{display:none;position:fixed;bottom:10px;left:0;right:0;text-align:center;color:var(--ok);font-size:12px;z-index:50}
+
+/* 模式選擇 */
+.modeRow{display:flex;gap:10px;margin-top:16px}
+.modeBtn{flex:1;font-family:'Noto Sans TC';font-weight:700;font-size:14px;padding:12px 6px;border-radius:12px;border:2px solid var(--panel2);background:var(--panel);color:var(--muted);cursor:pointer;transition:.2s;letter-spacing:.5px}
+.modeBtn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(5,217,232,.09);box-shadow:0 0 14px rgba(5,217,232,.25)}
+
+/* 足球守門員遊戲頁 */
+#soccerScreen{padding:0}
+#soccerScreen .camWrap{flex:1;border-radius:0;border:none}
+#sVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#sCanvas{position:absolute;inset:0;width:100%;height:100%}
+#sCamMsg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:6;text-align:center;background:rgba(13,2,33,.78);color:var(--ok);font-weight:700;font-size:clamp(15px,2.6vw,22px);padding:20px;line-height:1.6}
+#sHUD{position:fixed;top:0;left:0;right:0;z-index:30;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(rgba(13,2,33,.88),transparent)}
+#sScoreDisplay{font-family:'Orbitron';font-weight:900;font-size:clamp(18px,4vw,34px);letter-spacing:2px}
+#sScoreDisplay .sv{color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+#sScoreDisplay .gl{color:var(--pink);text-shadow:0 0 10px var(--pink)}
+#sBallNum{font-family:'Orbitron';font-size:13px;color:var(--muted);letter-spacing:1px}
+#sResultMsg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:35;pointer-events:none;font-family:'Orbitron';font-weight:900;font-size:clamp(52px,15vw,130px);opacity:0;transition:opacity .1s;white-space:nowrap}
+#sResultMsg.save{color:var(--cyan);text-shadow:0 0 40px var(--cyan),0 0 80px rgba(5,217,232,.4)}
+#sResultMsg.goal{color:var(--pink);text-shadow:0 0 40px var(--pink),0 0 80px rgba(255,42,109,.4)}
+
+/* 足球結算頁 */
+#soccerResultScreen{justify-content:center;align-items:center;gap:20px}
+#sWinLose{font-family:'Orbitron';font-weight:900;font-size:clamp(42px,12vw,92px)}
+#sWinLose.win{color:#FFD23F;text-shadow:0 0 50px #FFD23F}
+#sWinLose.lose{color:var(--pink);text-shadow:0 0 40px var(--pink)}
+#sWinLose.draw{color:var(--muted)}
+.sStatline{font-family:'Orbitron';font-size:clamp(20px,4vw,36px);letter-spacing:2px}
+.sStatline .sv2{color:var(--cyan)}
+.sStatline .gl2{color:var(--pink)}
 </style>
 </head>
 <body>
@@ -200,7 +230,11 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
     <input id="inName" class="input" placeholder="輸入暱稱" maxlength="12">
     <div class="label" style="margin-top:14px">手機號碼</div>
     <input id="inPhone" class="input" placeholder="0900000000" inputmode="numeric" maxlength="10">
-    <button id="btnStart" class="btn cyan" style="width:100%;margin-top:20px">開始挑戰</button>
+    <div class="modeRow">
+      <button id="btnModeFitness" class="modeBtn active">🏋️ 健身模式</button>
+      <button id="btnModeSoccer" class="modeBtn">⚽ 守門員模式</button>
+    </div>
+    <button id="btnStart" class="btn cyan" style="width:100%;margin-top:16px">開始挑戰</button>
     <div id="voiceToggle" class="toggle on"><div class="box"></div>語音報數</div>
   </div>
   <div class="hint">需要相機權限・建議裝置架在約 2 公尺外拍到全身<br>橫向、光線充足效果最好</div>
@@ -253,6 +287,30 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
   <div class="btnRow">
     <button id="btnReplay" class="btn cyan">再玩一次</button>
     <button id="btnHome" class="btn ghost">回首頁</button>
+  </div>
+</section>
+
+<!-- 足球守門員遊戲頁 -->
+<section id="soccerScreen" class="screen">
+  <div class="camWrap">
+    <video id="sVideo" autoplay playsinline muted></video>
+    <canvas id="sCanvas"></canvas>
+    <div id="sCamMsg">啟動相機中…</div>
+  </div>
+  <div id="sHUD">
+    <div id="sScoreDisplay">玩家 <span id="sSaves" class="sv">0</span> : <span id="sGoals" class="gl">0</span> 對手</div>
+    <div id="sBallNum">第 1 / 12 球</div>
+  </div>
+  <div id="sResultMsg"></div>
+</section>
+
+<!-- 足球結算頁 -->
+<section id="soccerResultScreen" class="screen">
+  <div id="sWinLose" class="win">勝利!</div>
+  <div class="sStatline">玩家 <span id="sFinalSaves" class="sv2">0</span> : <span id="sFinalGoals" class="gl2">0</span> 對手</div>
+  <div class="btnRow">
+    <button id="btnSoccerReplay" class="btn cyan">再踢一場</button>
+    <button id="btnSoccerHome" class="btn ghost">回首頁</button>
   </div>
 </section>
 
@@ -402,6 +460,7 @@ function buildSequence(level){
 const state={
   player:{name:'',phone:''},
   voice:true,
+  mode:'fitness',
   levelIdx:0,
   seq:[], taskIdx:0,
   score:0, totalReps:0, goodReps:0,
@@ -430,7 +489,7 @@ function speak(text){
 }
 
 /* ---------------- 畫面切換 ---------------- */
-const screens={start:'startScreen',ready:'readyScreen',game:'gameScreen',result:'resultScreen'};
+const screens={start:'startScreen',ready:'readyScreen',game:'gameScreen',result:'resultScreen',soccer:'soccerScreen',soccerResult:'soccerResultScreen'};
 function show(name){
   Object.values(screens).forEach(id=>document.getElementById(id).classList.remove('active'));
   document.getElementById(screens[name]).classList.add('active');
@@ -766,6 +825,173 @@ async function startGame(){
   },900);
 }
 
+/* ================== 足球守門員模式 ================== */
+const SOCCER_ZONES=[
+  [0.14,0.20],[0.50,0.14],[0.86,0.20],
+  [0.08,0.54],[0.92,0.54],
+  [0.18,0.82],[0.50,0.80],[0.82,0.82]
+];
+let sVid=null,sCvs=null,sCx=null,sRafId=null,sLastTs=-1;
+const sc={total:12,shot:0,saves:0,goals:0,phase:'idle',flashTimer:null,
+  ball:{sx:.5,sy:.46,ex:.5,ey:.5,t0:0,dur:2500,spin:0,saved:false}};
+
+function scReset(){ sc.shot=0;sc.saves=0;sc.goals=0;sc.phase='idle'; }
+
+function scHUD(){
+  document.getElementById('sSaves').textContent=sc.saves;
+  document.getElementById('sGoals').textContent=sc.goals;
+  document.getElementById('sBallNum').textContent='第 '+(sc.shot+1)+' / '+sc.total+' 球';
+}
+
+function scLaunch(){
+  if(sc.shot>=sc.total){ scEnd(); return; }
+  const z=SOCCER_ZONES[Math.floor(Math.random()*SOCCER_ZONES.length)];
+  const b=sc.ball;
+  b.sx=.5; b.sy=.46; b.ex=z[0]; b.ey=z[1];
+  b.t0=performance.now(); b.dur=2500;
+  b.spin=Math.random()*Math.PI*2; b.saved=false;
+  sc.phase='flying';
+  scHUD();
+}
+
+function scFlash(type){
+  const el=document.getElementById('sResultMsg');
+  el.textContent=type==='save'?'SAVE!':'GOAL!';
+  el.className=type; el.style.opacity='1';
+  sc.phase='flash';
+  clearTimeout(sc.flashTimer);
+  sc.flashTimer=setTimeout(()=>{
+    el.style.opacity='0';
+    sc.shot++;
+    sc.phase='idle';
+    if(sc.shot>=sc.total){ setTimeout(scEnd,400); return; }
+    setTimeout(scLaunch,600);
+  },1200);
+}
+
+function scEnd(){
+  sc.phase='idle';
+  cancelAnimationFrame(sRafId);
+  if(sVid&&sVid.srcObject) sVid.srcObject.getTracks().forEach(t=>t.stop());
+  document.getElementById('sFinalSaves').textContent=sc.saves;
+  document.getElementById('sFinalGoals').textContent=sc.goals;
+  const wl=document.getElementById('sWinLose');
+  if(sc.saves>sc.goals){ wl.textContent='勝利!'; wl.className='win'; }
+  else if(sc.saves<sc.goals){ wl.textContent='失敗'; wl.className='lose'; }
+  else { wl.textContent='平手'; wl.className='draw'; }
+  sfxLevel();
+  show('soccerResult');
+}
+
+function drawSoccerBall(cx,cy,r,spin){
+  sCx.save();
+  sCx.translate(cx,cy); sCx.rotate(spin);
+  // Shadow
+  sCx.beginPath(); sCx.arc(r*0.08,r*0.08,r,0,Math.PI*2);
+  sCx.fillStyle='rgba(0,0,0,0.28)'; sCx.fill();
+  // White body
+  sCx.beginPath(); sCx.arc(0,0,r,0,Math.PI*2);
+  sCx.fillStyle='#f0f0f0';
+  sCx.shadowColor='rgba(255,255,255,0.35)'; sCx.shadowBlur=r*0.4;
+  sCx.fill(); sCx.shadowBlur=0;
+  sCx.strokeStyle='#bbb'; sCx.lineWidth=r*0.04; sCx.stroke();
+  // Black pentagon patches
+  [[0,-0.58],[0.55,-0.18],[0.34,0.47],[-0.34,0.47],[-0.55,-0.18]].forEach(([px,py])=>{
+    sCx.beginPath(); sCx.arc(px*r,py*r,r*0.22,0,Math.PI*2);
+    sCx.fillStyle='#111'; sCx.fill();
+  });
+  // Highlight
+  sCx.beginPath(); sCx.arc(-r*0.27,-r*0.3,r*0.14,0,Math.PI*2);
+  sCx.fillStyle='rgba(255,255,255,0.62)'; sCx.fill();
+  sCx.restore();
+}
+
+function sLoop(){
+  sRafId=requestAnimationFrame(sLoop);
+  if(!landmarker||!sVid||sVid.readyState<2) return;
+  const ts=performance.now();
+  if(ts===sLastTs) return; sLastTs=ts;
+  const res=landmarker.detectForVideo(sVid,ts);
+  sCx.clearRect(0,0,sCvs.width,sCvs.height);
+  const lm=res.landmarks&&res.landmarks[0];
+  const camMsg=document.getElementById('sCamMsg');
+  if(!lm){ camMsg.style.display='flex'; }
+  else { camMsg.style.display='none'; }
+
+  if(lm){
+    // Faint skeleton
+    sCx.save(); sCx.translate(sCvs.width,0); sCx.scale(-1,1);
+    sCx.lineWidth=2; sCx.strokeStyle='rgba(5,217,232,0.3)'; sCx.shadowBlur=0;
+    SKELETON.forEach(([a,b])=>{
+      sCx.beginPath();
+      sCx.moveTo(lm[a].x*sCvs.width,lm[a].y*sCvs.height);
+      sCx.lineTo(lm[b].x*sCvs.width,lm[b].y*sCvs.height);
+      sCx.stroke();
+    });
+    // Wrist glow rings (守門提示)
+    [LM.lWr,LM.rWr].forEach(k=>{
+      sCx.beginPath();
+      sCx.arc(lm[k].x*sCvs.width,lm[k].y*sCvs.height,22,0,Math.PI*2);
+      sCx.strokeStyle='rgba(255,42,109,0.85)'; sCx.lineWidth=3;
+      sCx.shadowColor='#FF2A6D'; sCx.shadowBlur=10; sCx.stroke();
+      sCx.shadowBlur=0;
+    });
+    sCx.restore();
+  }
+
+  if(sc.phase!=='flying') return;
+  const b=sc.ball;
+  const t=Math.min(1,(performance.now()-b.t0)/b.dur);
+  const drawR=5+(85-5)*t;
+  const bx=(b.sx+(b.ex-b.sx)*t)*sCvs.width;
+  const by=(b.sy+(b.ey-b.sy)*t)*sCvs.height;
+  b.spin+=0.055;
+
+  sCx.save(); sCx.translate(sCvs.width,0); sCx.scale(-1,1);
+  drawSoccerBall(bx,by,drawR,b.spin);
+  sCx.restore();
+
+  // Hit detection when ball is at t>0.60
+  if(t>0.60&&!b.saved&&lm){
+    const hitR=drawR*2.5;
+    const lwx=lm[LM.lWr].x*sCvs.width, lwy=lm[LM.lWr].y*sCvs.height;
+    const rwx=lm[LM.rWr].x*sCvs.width, rwy=lm[LM.rWr].y*sCvs.height;
+    if(Math.hypot(lwx-bx,lwy-by)<hitR||Math.hypot(rwx-bx,rwy-by)<hitR){
+      b.saved=true; sc.saves++;
+      sfxGood(); scFlash('save');
+    }
+  }
+  if(t>=1&&!b.saved){
+    sc.goals++; sfxBad(); scFlash('goal');
+  }
+}
+
+async function startSoccerGame(){
+  scReset();
+  show('ready');
+  document.getElementById('readyName').textContent=state.player.name+'・守門員準備';
+  try{
+    if(!landmarker){ document.getElementById('countNum').textContent='載入中'; await initLandmarker(); }
+    sVid=document.getElementById('sVideo');
+    sCvs=document.getElementById('sCanvas');
+    sCx=sCvs.getContext('2d');
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:1280,height:720},audio:false});
+    sVid.srcObject=stream; await sVid.play();
+    sCvs.width=sVid.videoWidth; sCvs.height=sVid.videoHeight;
+  }catch(e){
+    alert('無法啟動相機:'+e.message); show('start'); return;
+  }
+  let n=3; const cn=document.getElementById('countNum'); cn.textContent='3'; show('ready');
+  const iv=setInterval(()=>{
+    n--; beep(440,0.1);
+    if(n<=0){
+      clearInterval(iv); cn.textContent='GO'; beep(880,0.2);
+      show('soccer'); sLastTs=-1; scHUD(); sLoop();
+      setTimeout(scLaunch,800);
+    } else cn.textContent=n;
+  },900);
+}
+
 /* ---------------- 事件 ---------------- */
 document.getElementById('btnStart').addEventListener('click',()=>{
   const name=document.getElementById('inName').value.trim();
@@ -774,15 +1000,31 @@ document.getElementById('btnStart').addEventListener('click',()=>{
   if(!/^09\d{8}$/.test(phone)){ alert('請輸入正確手機號碼'); return; }
   state.player={name,phone};
   audio(); // 解鎖音訊
-  startGame();
+  if(state.mode==='soccer') startSoccerGame();
+  else startGame();
 });
 document.getElementById('voiceToggle').addEventListener('click',function(){
   this.classList.toggle('on'); state.voice=this.classList.contains('on');
 });
+document.getElementById('btnModeFitness').addEventListener('click',function(){
+  state.mode='fitness';
+  this.classList.add('active');
+  document.getElementById('btnModeSoccer').classList.remove('active');
+});
+document.getElementById('btnModeSoccer').addEventListener('click',function(){
+  state.mode='soccer';
+  this.classList.add('active');
+  document.getElementById('btnModeFitness').classList.remove('active');
+});
 document.getElementById('btnReplay').addEventListener('click',startGame);
 document.getElementById('btnHome').addEventListener('click',()=>show('start'));
+document.getElementById('btnSoccerReplay').addEventListener('click',startSoccerGame);
+document.getElementById('btnSoccerHome').addEventListener('click',()=>show('start'));
 
-window.addEventListener('beforeunload',()=>{ if(video&&video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop()); });
+window.addEventListener('beforeunload',()=>{
+  if(video&&video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
+  if(sVid&&sVid.srcObject) sVid.srcObject.getTracks().forEach(t=>t.stop());
+});
 </script>
 </body>
 </html>
