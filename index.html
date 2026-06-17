@@ -847,8 +847,8 @@ function scLaunch(){
   if(sc.shot>=sc.total){ scEnd(); return; }
   const z=SOCCER_ZONES[Math.floor(Math.random()*SOCCER_ZONES.length)];
   const b=sc.ball;
-  b.sx=.5; b.sy=.46; b.ex=z[0]; b.ey=z[1];
-  b.t0=performance.now(); b.dur=2500;
+  b.sx=z[0]; b.sy=z[1]; b.ex=.5; b.ey=.46;
+  b.t0=performance.now(); b.dur=3000;
   b.spin=Math.random()*Math.PI*2; b.saved=false;
   sc.phase='flying';
   scHUD();
@@ -899,6 +899,38 @@ function drawSoccerBall(cx,cy,r,spin){
   sCx.restore();
 }
 
+function drawGoal(){
+  const W=sCvs.width, H=sCvs.height;
+  const gL=W*0.12, gR=W*0.88, gT=H*0.05, gB=H*0.84;
+  const gW=gR-gL, gH=gB-gT;
+  // Net grid
+  sCx.save();
+  sCx.globalAlpha=0.16; sCx.strokeStyle='#ffffff'; sCx.lineWidth=1;
+  const cols=18, rows=13;
+  for(let i=0;i<=cols;i++){
+    const x=gL+gW*i/cols;
+    sCx.beginPath(); sCx.moveTo(x,gT); sCx.lineTo(x,gB); sCx.stroke();
+  }
+  for(let j=0;j<=rows;j++){
+    const y=gT+gH*j/rows;
+    sCx.beginPath(); sCx.moveTo(gL,y); sCx.lineTo(gR,y); sCx.stroke();
+  }
+  // Posts & crossbar
+  sCx.globalAlpha=1;
+  sCx.strokeStyle='#ffffff'; sCx.lineWidth=9;
+  sCx.lineCap='round'; sCx.lineJoin='round';
+  sCx.shadowColor='rgba(255,255,255,0.8)'; sCx.shadowBlur=14;
+  sCx.beginPath();
+  sCx.moveTo(gL,gB); sCx.lineTo(gL,gT); sCx.lineTo(gR,gT); sCx.lineTo(gR,gB);
+  sCx.stroke();
+  // Ground dashes
+  sCx.shadowBlur=0; sCx.strokeStyle='rgba(255,255,255,0.35)';
+  sCx.lineWidth=3; sCx.setLineDash([22,14]);
+  sCx.beginPath(); sCx.moveTo(gL,gB); sCx.lineTo(gR,gB); sCx.stroke();
+  sCx.setLineDash([]);
+  sCx.restore();
+}
+
 function sLoop(){
   sRafId=requestAnimationFrame(sLoop);
   if(!landmarker||!sVid||sVid.readyState<2) return;
@@ -906,6 +938,7 @@ function sLoop(){
   if(ts===sLastTs) return; sLastTs=ts;
   const res=landmarker.detectForVideo(sVid,ts);
   sCx.clearRect(0,0,sCvs.width,sCvs.height);
+  drawGoal();
   const lm=res.landmarks&&res.landmarks[0];
   const camMsg=document.getElementById('sCamMsg');
   if(!lm){ camMsg.style.display='flex'; }
@@ -935,7 +968,7 @@ function sLoop(){
   if(sc.phase!=='flying') return;
   const b=sc.ball;
   const t=Math.min(1,(performance.now()-b.t0)/b.dur);
-  const drawR=5+(85-5)*t;
+  const drawR=85+(5-85)*t;   // 由大到小
   const bx=(b.sx+(b.ex-b.sx)*t)*sCvs.width;
   const by=(b.sy+(b.ey-b.sy)*t)*sCvs.height;
   b.spin+=0.055;
@@ -944,9 +977,9 @@ function sLoop(){
   drawSoccerBall(bx,by,drawR,b.spin);
   sCx.restore();
 
-  // Hit detection when ball is at t>0.60
-  if(t>0.60&&!b.saved&&lm){
-    const hitR=drawR*2.5;
+  // 球變小進入球門前（t<=0.88）都可攔截
+  if(t<=0.88&&!b.saved&&lm){
+    const hitR=Math.max(50,drawR*2.2);
     const lwx=lm[LM.lWr].x*sCvs.width, lwy=lm[LM.lWr].y*sCvs.height;
     const rwx=lm[LM.rWr].x*sCvs.width, rwy=lm[LM.rWr].y*sCvs.height;
     if(Math.hypot(lwx-bx,lwy-by)<hitR||Math.hypot(rwx-bx,rwy-by)<hitR){
