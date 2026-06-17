@@ -229,7 +229,8 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
 #wHUD .hl{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px;margin-bottom:2px}
 #wClean{font-family:'Orbitron';font-size:clamp(15px,3.2vw,26px);color:var(--cyan);font-weight:900;text-shadow:0 0 8px var(--cyan)}
 #wDirty{font-family:'Orbitron';font-size:clamp(15px,3.2vw,26px);color:var(--pink);font-weight:900;text-shadow:0 0 8px var(--pink)}
-#wDropLeft{font-family:'Orbitron';font-size:12px;color:var(--muted);text-align:center;letter-spacing:1px}
+#wTimer{font-family:'Orbitron';font-size:clamp(20px,4.5vw,36px);color:#FFD23F;font-weight:900;text-shadow:0 0 12px #FFD23F;letter-spacing:2px;line-height:1}
+#wDropLeft{font-family:'Orbitron';font-size:11px;color:var(--muted);text-align:center;letter-spacing:1px;margin-top:3px}
 #wPollMsg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:40;text-align:center;pointer-events:none;opacity:0;transition:opacity .1s;width:90vw}
 #wPollMsg .pm1{font-family:'Orbitron';font-weight:900;font-size:clamp(20px,5.5vw,50px);color:var(--pink);text-shadow:0 0 30px var(--pink),0 0 60px rgba(255,42,109,.35)}
 #wPollMsg .pm2{font-family:'Noto Sans TC';font-size:clamp(12px,2.5vw,18px);color:var(--ok);margin-top:8px;font-weight:700}
@@ -350,7 +351,7 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
   </div>
   <div id="wHUD">
     <div class="hw"><div class="hl">乾淨水滴</div><div id="wClean">0 / 20</div></div>
-    <div id="wDropLeft">剩餘 60 滴</div>
+    <div class="hw"><div id="wTimer">0.0</div><div id="wDropLeft">剩餘 62 滴</div></div>
     <div class="hw"><div class="hl">污水接到</div><div id="wDirty">0 / 3</div></div>
   </div>
   <div id="wPollMsg"><div class="pm1"></div><div class="pm2"></div></div>
@@ -360,7 +361,9 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
 <!-- 接水結算頁 -->
 <section id="waterResultScreen" class="screen">
   <div id="wWinLose" class="win">淨水成功!</div>
+  <div id="wFinalTime" style="font-family:'Orbitron';font-size:clamp(22px,5.5vw,48px);color:#FFD23F;font-weight:900;text-shadow:0 0 20px #FFD23F"></div>
   <div class="wStat">乾淨 <span id="wFinalClean" class="wc">0</span> 滴・污水 <span id="wFinalDirty" class="wd">0</span> 滴</div>
+  <div class="lb"><h3>最速排行榜 TOP 10</h3><div id="wLbList">載入中…</div></div>
   <div class="btnRow">
     <button id="btnWaterReplay" class="btn cyan">再玩一次</button>
     <button id="btnWaterHome" class="btn ghost">回首頁</button>
@@ -1111,7 +1114,8 @@ const wg={
   pool:[],poolIdx:0,
   drops:[],cleanCaught:0,dirtyCaught:0,
   phase:'idle',lastSpawn:0,spawnInterval:850,
-  pollTimer:null,purified:false,purifyTimer:null
+  pollTimer:null,purified:false,purifyTimer:null,
+  startTime:0,elapsed:0
 };
 
 function wBuildPool(){
@@ -1122,6 +1126,36 @@ function wBuildPool(){
   const p1=8+Math.floor(Math.random()*8), p2=22+Math.floor(Math.random()*8), p3=38+Math.floor(Math.random()*8);
   pool.splice(p1,0,{type:'purifier'}); pool.splice(p2+1,0,{type:'purifier'}); pool.splice(p3+2,0,{type:'purifier'});
   return pool;
+}
+
+function wTimerStr(ms){
+  const s=ms/1000;
+  if(s<60) return s.toFixed(1);
+  return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+Math.round((s%1)*10);
+}
+
+async function submitWaterScore(timeMs){
+  if(!JR.supabaseAnonKey) return;
+  try{
+    await fetch(JR.supabaseUrl+'/rest/v1/jr_water_scores',{
+      method:'POST',
+      headers:{'apikey':JR.supabaseAnonKey,'Authorization':'Bearer '+JR.supabaseAnonKey,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({jr_name:state.player.name,jr_phone:state.player.phone,jr_time_ms:Math.round(timeMs)})
+    });
+  }catch(e){ console.warn('接水上傳失敗',e); }
+}
+
+async function loadWaterLeaderboard(){
+  const list=document.getElementById('wLbList');
+  if(!JR.supabaseAnonKey){ list.innerHTML='<div class="row"><span class="nm">設定 Supabase 後顯示排行榜</span></div>'; return; }
+  try{
+    const r=await fetch(JR.supabaseUrl+'/rest/v1/jr_water_scores?select=jr_name,jr_time_ms&order=jr_time_ms.asc&limit=10',{
+      headers:{'apikey':JR.supabaseAnonKey,'Authorization':'Bearer '+JR.supabaseAnonKey}
+    });
+    const rows=await r.json();
+    if(!Array.isArray(rows)||!rows.length){ list.innerHTML='<div class="row"><span class="nm">還沒有紀錄・當第一名!</span></div>'; return; }
+    list.innerHTML=rows.map((x,i)=>'<div class="row"><span class="rk">'+(i+1)+'</span><span class="nm">'+(x.jr_name||'匿名')+'</span><span class="sc">'+wTimerStr(x.jr_time_ms)+'</span></div>').join('');
+  }catch(e){ list.innerHTML='<div class="row"><span class="nm">排行榜載入失敗</span></div>'; }
 }
 
 function wUpdateHUD(){
@@ -1256,6 +1290,7 @@ function wDrawPurifierCup(x,y,r){
 
 function wEnd(win){
   wg.phase='ended';
+  wg.elapsed=performance.now()-wg.startTime;
   cancelAnimationFrame(wRafId);
   if(wVid&&wVid.srcObject) wVid.srcObject.getTracks().forEach(t=>t.stop());
   clearTimeout(wg.pollTimer); clearTimeout(wg.purifyTimer);
@@ -1265,7 +1300,10 @@ function wEnd(win){
   el.textContent=win?'淨水成功!':'水質污染!'; el.className=win?'win':'lose';
   document.getElementById('wFinalClean').textContent=wg.cleanCaught;
   document.getElementById('wFinalDirty').textContent=wg.dirtyCaught;
+  document.getElementById('wFinalTime').textContent=win?wTimerStr(wg.elapsed)+' 秒完成':'—';
   sfxLevel(); show('waterResult');
+  if(win) submitWaterScore(wg.elapsed).finally(loadWaterLeaderboard);
+  else loadWaterLeaderboard();
 }
 
 function wLoop(ts){
@@ -1281,6 +1319,7 @@ function wLoop(ts){
   document.getElementById('wCamMsg').style.display=lm?'none':'flex';
   if(wg.phase!=='running') return;
   const now=performance.now();
+  document.getElementById('wTimer').textContent=wTimerStr(now-wg.startTime);
   // Spawn next drop from pool
   if(wg.poolIdx<wg.pool.length&&now-wg.lastSpawn>wg.spawnInterval){
     const tmpl=wg.pool[wg.poolIdx++];
@@ -1348,7 +1387,7 @@ function wLoop(ts){
 async function startWaterGame(){
   wg.phase='idle'; wg.pool=wBuildPool(); wg.poolIdx=0;
   wg.drops=[]; wg.cleanCaught=0; wg.dirtyCaught=0;
-  wg.purified=false; wg.lastSpawn=0;
+  wg.purified=false; wg.lastSpawn=0; wg.startTime=0; wg.elapsed=0;
   clearTimeout(wg.pollTimer); clearTimeout(wg.purifyTimer);
   show('ready');
   document.getElementById('readyName').textContent=state.player.name+'・接水準備';
@@ -1366,7 +1405,7 @@ async function startWaterGame(){
     n--; beep(440,.1);
     if(n<=0){
       clearInterval(iv); cn.textContent='GO'; beep(880,.2);
-      show('water'); wLastTs=-1; wg.phase='running'; wg.lastSpawn=performance.now();
+      show('water'); wLastTs=-1; wg.phase='running'; wg.startTime=wg.lastSpawn=performance.now();
       wRafId=requestAnimationFrame(wLoop);
     } else cn.textContent=n;
   },900);
