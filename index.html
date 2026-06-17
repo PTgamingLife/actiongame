@@ -1189,30 +1189,68 @@ function wDrawPurifierItem(x,y,r){
 }
 
 function wDrawCup(x,y,r){
-  const w=r*2.2,h=r*1.5;
+  const w=r*2.6,h=r*2.0;
+  const top=y-h/2,bot=y+h/2;
+  const rimL=x-w/2,rimR=x+w/2,botL=x-w*.36,botR=x+w*.36;
   wCx.save();
-  wCx.strokeStyle='rgba(5,217,232,.9)'; wCx.lineWidth=3;
-  wCx.shadowColor='rgba(5,217,232,.5)'; wCx.shadowBlur=8;
-  wCx.beginPath();
-  wCx.moveTo(x-w/2,y-h/2); wCx.lineTo(x-w*.35,y+h/2);
-  wCx.lineTo(x+w*.35,y+h/2); wCx.lineTo(x+w/2,y-h/2);
-  wCx.stroke();
-  wCx.beginPath(); wCx.moveTo(x-w/2,y-h/2); wCx.lineTo(x+w/2,y-h/2); wCx.stroke();
+  // Body fill
+  wCx.beginPath(); wCx.moveTo(rimL,top); wCx.lineTo(botL,bot); wCx.lineTo(botR,bot); wCx.lineTo(rimR,top); wCx.closePath();
+  const bf=wCx.createLinearGradient(rimL,top,rimR,top);
+  bf.addColorStop(0,'rgba(5,217,232,.06)'); bf.addColorStop(.5,'rgba(5,217,232,.16)'); bf.addColorStop(1,'rgba(5,217,232,.06)');
+  wCx.fillStyle=bf; wCx.fill();
+  // Water fill at bottom (40%) with animated wave
+  const wh=h*.42,wt=bot-wh;
+  const wtL=botL+(rimL-botL)*(1-wh/h),wtR=botR+(rimR-botR)*(1-wh/h);
+  const mid=(wtL+wtR)/2,wave=Math.sin(performance.now()/400)*2.5;
+  wCx.beginPath(); wCx.moveTo(wtL,wt); wCx.quadraticCurveTo(mid,wt+wave,wtR,wt);
+  wCx.lineTo(botR,bot); wCx.lineTo(botL,bot); wCx.closePath();
+  const wf=wCx.createLinearGradient(x,wt,x,bot);
+  wf.addColorStop(0,'rgba(5,217,232,.30)'); wf.addColorStop(1,'rgba(5,217,232,.58)');
+  wCx.fillStyle=wf; wCx.fill();
+  // Cup sides
+  wCx.shadowColor='rgba(5,217,232,.65)'; wCx.shadowBlur=10;
+  wCx.strokeStyle='rgba(5,217,232,.88)'; wCx.lineWidth=2.5;
+  wCx.beginPath(); wCx.moveTo(rimL,top); wCx.lineTo(botL,bot); wCx.lineTo(botR,bot); wCx.lineTo(rimR,top); wCx.stroke();
+  // Rim (bright glow)
+  wCx.shadowBlur=16; wCx.shadowColor='rgba(5,217,232,.9)';
+  wCx.strokeStyle='rgba(5,217,232,1)'; wCx.lineWidth=3.5;
+  wCx.beginPath(); wCx.moveTo(rimL,top); wCx.lineTo(rimR,top); wCx.stroke();
+  // Left highlight
+  wCx.shadowBlur=0; wCx.strokeStyle='rgba(255,255,255,.32)'; wCx.lineWidth=1.5;
+  wCx.beginPath(); wCx.moveTo(rimL+w*.1,top+4); wCx.lineTo(botL+w*.07,bot-5); wCx.stroke();
   wCx.restore();
 }
 
 function wDrawPurifierCup(x,y,r){
-  const w=r*2.4,h=r*2.6;
+  const w=r*2.6,h=r*2.8;
   wCx.save();
-  wCx.fillStyle='rgba(235,248,255,.88)'; wCx.strokeStyle='rgba(5,217,232,.95)'; wCx.lineWidth=2.5;
-  wCx.shadowColor='rgba(5,217,232,.8)'; wCx.shadowBlur=14;
+  // Body
+  wCx.shadowColor='rgba(5,217,232,.85)'; wCx.shadowBlur=18;
+  wCx.fillStyle='rgba(228,248,255,.93)'; wCx.strokeStyle='rgba(5,217,232,.95)'; wCx.lineWidth=2.5;
   wCx.beginPath();
-  if(wCx.roundRect) wCx.roundRect(x-w/2,y-h/2,w,h,r*.3); else wCx.rect(x-w/2,y-h/2,w,h);
+  if(wCx.roundRect) wCx.roundRect(x-w/2,y-h/2,w,h,r*.32); else wCx.rect(x-w/2,y-h/2,w,h);
   wCx.fill(); wCx.stroke();
-  wCx.shadowBlur=0; wCx.fillStyle='#0088bb';
-  wCx.font='bold '+Math.round(r*.58)+'px sans-serif';
-  wCx.textAlign='center'; wCx.textBaseline='middle';
-  wCx.fillText('eS',x,y);
+  // Inner glow
+  wCx.shadowBlur=0;
+  const ig=wCx.createLinearGradient(x-w/2,y,x+w/2,y);
+  ig.addColorStop(0,'rgba(5,217,232,.03)'); ig.addColorStop(.5,'rgba(5,217,232,.14)'); ig.addColorStop(1,'rgba(5,217,232,.03)');
+  wCx.fillStyle=ig;
+  wCx.beginPath();
+  if(wCx.roundRect) wCx.roundRect(x-w/2+3,y-h/2+3,w-6,h-6,r*.26); else wCx.rect(x-w/2+3,y-h/2+3,w-6,h-6);
+  wCx.fill();
+  // Divider
+  wCx.strokeStyle='rgba(5,170,210,.45)'; wCx.lineWidth=1.5;
+  wCx.beginPath(); wCx.moveTo(x-w/2,y-h*.06); wCx.lineTo(x+w/2,y-h*.26); wCx.stroke();
+  // UV label
+  wCx.fillStyle='#006fa0'; wCx.font='bold '+Math.round(r*.65)+'px sans-serif';
+  wCx.textAlign='center'; wCx.textBaseline='middle'; wCx.fillText('UV',x,y-h*.15);
+  // eSpring label
+  wCx.fillStyle='#05aad4'; wCx.font='bold '+Math.round(r*.42)+'px sans-serif';
+  wCx.fillText('eSpring',x,y+h*.2);
+  // Pulsing active indicator
+  const pulse=0.55+Math.sin(performance.now()/280)*0.45;
+  wCx.fillStyle='rgba(0,220,170,'+pulse+')';
+  wCx.beginPath(); wCx.arc(x+w*.28,y-h*.28,r*.15,0,Math.PI*2); wCx.fill();
   wCx.restore();
 }
 
