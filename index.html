@@ -1119,8 +1119,8 @@ function wBuildPool(){
   for(let i=0;i<30;i++) pool.push({type:'clean'});
   for(let i=0;i<30;i++) pool.push({type:'dirty',pollIdx:i%POLLUTANTS.length});
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
-  const p1=8+Math.floor(Math.random()*10), p2=28+Math.floor(Math.random()*10);
-  pool.splice(p1,0,{type:'purifier'}); pool.splice(p2+1,0,{type:'purifier'});
+  const p1=8+Math.floor(Math.random()*8), p2=22+Math.floor(Math.random()*8), p3=38+Math.floor(Math.random()*8);
+  pool.splice(p1,0,{type:'purifier'}); pool.splice(p2+1,0,{type:'purifier'}); pool.splice(p3+2,0,{type:'purifier'});
   return pool;
 }
 
@@ -1250,7 +1250,7 @@ function wLoop(ts){
       ...tmpl,
       x:(0.1+Math.random()*.8)*W,
       y:-25,
-      vy:2.4+Math.random()*1.5,
+      vy:tmpl.type==='purifier'?(2.4+Math.random()*1.5)*3:(2.4+Math.random()*1.5),
       r:15+Math.random()*10,
       opacity:tmpl.type==='dirty'?(.1+Math.random()*.9):1
     });
