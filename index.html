@@ -833,7 +833,7 @@ const SOCCER_ZONES=[
 ];
 let sVid=null,sCvs=null,sCx=null,sRafId=null,sLastTs=-1;
 const sc={total:12,shot:0,saves:0,goals:0,phase:'idle',flashTimer:null,
-  ball:{sx:.5,sy:.46,ex:.5,ey:.5,t0:0,dur:2500,spin:0,saved:false}};
+  ball:{sx:.5,sy:.46,ex:.5,ey:.5,t0:0,dur:2500,spin:0,saved:false,goalT:0}};
 
 function scReset(){ sc.shot=0;sc.saves=0;sc.goals=0;sc.phase='idle'; }
 
@@ -965,10 +965,26 @@ function sLoop(){
     sCx.restore();
   }
 
+  // 進球旋轉動畫
+  if(sc.phase==='goaling'){
+    const b=sc.ball;
+    const gt=Math.min(1,(performance.now()-b.goalT)/700);
+    const gx=b.ex*sCvs.width, gy=b.ey*sCvs.height;
+    b.spin+=0.18*(1+gt*4);              // 加速旋轉
+    const gr=22*(1+Math.sin(gt*Math.PI*2)*0.28); // 脈衝縮放
+    sCx.save(); sCx.translate(sCvs.width,0); sCx.scale(-1,1);
+    sCx.globalAlpha=Math.max(0,1-gt*0.55);
+    drawSoccerBall(gx,gy,gr,b.spin);
+    sCx.globalAlpha=1;
+    sCx.restore();
+    if(gt>=1){ sc.goals++; scFlash('goal'); }
+    return;
+  }
+
   if(sc.phase!=='flying') return;
   const b=sc.ball;
   const t=Math.min(1,(performance.now()-b.t0)/b.dur);
-  const drawR=85+(5-85)*t;   // 由大到小
+  const drawR=85+(22-85)*t;   // 由大到小，最小與手腕圓圈相同(22px)
   const bx=(b.sx+(b.ex-b.sx)*t)*sCvs.width;
   const by=(b.sy+(b.ey-b.sy)*t)*sCvs.height;
   b.spin+=0.055;
@@ -988,7 +1004,7 @@ function sLoop(){
     }
   }
   if(t>=1&&!b.saved){
-    sc.goals++; sfxBad(); scFlash('goal');
+    sc.phase='goaling'; b.goalT=performance.now(); sfxBad();
   }
 }
 
