@@ -217,6 +217,32 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
 .sStatline{font-family:'Orbitron';font-size:clamp(20px,4vw,36px);letter-spacing:2px}
 .sStatline .sv2{color:var(--cyan)}
 .sStatline .gl2{color:var(--pink)}
+
+/* ── 接水模式 ── */
+#waterScreen{padding:0}
+#waterScreen .camWrap{flex:1;border-radius:0;border:none}
+#wVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#wCanvas{position:absolute;inset:0;width:100%;height:100%}
+#wCamMsg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:6;background:rgba(13,2,33,.78);color:var(--ok);font-weight:700;font-size:clamp(15px,2.6vw,22px);text-align:center;padding:20px;line-height:1.6}
+#wHUD{position:fixed;top:0;left:0;right:0;z-index:30;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(rgba(13,2,33,.88),transparent)}
+#wHUD .hw{display:flex;flex-direction:column;align-items:center}
+#wHUD .hl{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px;margin-bottom:2px}
+#wClean{font-family:'Orbitron';font-size:clamp(15px,3.2vw,26px);color:var(--cyan);font-weight:900;text-shadow:0 0 8px var(--cyan)}
+#wDirty{font-family:'Orbitron';font-size:clamp(15px,3.2vw,26px);color:var(--pink);font-weight:900;text-shadow:0 0 8px var(--pink)}
+#wDropLeft{font-family:'Orbitron';font-size:12px;color:var(--muted);text-align:center;letter-spacing:1px}
+#wPollMsg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:40;text-align:center;pointer-events:none;opacity:0;transition:opacity .1s;width:90vw}
+#wPollMsg .pm1{font-family:'Orbitron';font-weight:900;font-size:clamp(20px,5.5vw,50px);color:var(--pink);text-shadow:0 0 30px var(--pink),0 0 60px rgba(255,42,109,.35)}
+#wPollMsg .pm2{font-family:'Noto Sans TC';font-size:clamp(12px,2.5vw,18px);color:var(--ok);margin-top:8px;font-weight:700}
+#wPurifyMsg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:41;text-align:center;pointer-events:none;opacity:0;transition:opacity .1s;width:90vw}
+#wPurifyMsg .pu1{font-family:'Orbitron';font-weight:900;font-size:clamp(22px,6vw,54px);color:var(--cyan);text-shadow:0 0 30px var(--cyan),0 0 60px rgba(5,217,232,.4)}
+#wPurifyMsg .pu2{font-family:'Noto Sans TC';font-size:clamp(13px,2.5vw,18px);color:#fff;margin-top:8px;font-weight:700}
+#waterResultScreen{justify-content:center;align-items:center;gap:20px}
+#wWinLose{font-family:'Orbitron';font-weight:900;font-size:clamp(40px,11vw,86px)}
+#wWinLose.win{color:#FFD23F;text-shadow:0 0 50px #FFD23F}
+#wWinLose.lose{color:var(--pink);text-shadow:0 0 40px var(--pink)}
+.wStat{font-family:'Orbitron';font-size:clamp(14px,3vw,24px);color:var(--muted);letter-spacing:1px}
+.wStat .wc{color:var(--cyan)}
+.wStat .wd{color:var(--pink)}
 </style>
 </head>
 <body>
@@ -233,6 +259,7 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
     <div class="modeRow">
       <button id="btnModeFitness" class="modeBtn active">🏋️ 健身模式</button>
       <button id="btnModeSoccer" class="modeBtn">⚽ 守門員模式</button>
+      <button id="btnModeWater" class="modeBtn">💧 接水模式</button>
     </div>
     <button id="btnStart" class="btn cyan" style="width:100%;margin-top:16px">開始挑戰</button>
     <div id="voiceToggle" class="toggle on"><div class="box"></div>語音報數</div>
@@ -311,6 +338,32 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
   <div class="btnRow">
     <button id="btnSoccerReplay" class="btn cyan">再踢一場</button>
     <button id="btnSoccerHome" class="btn ghost">回首頁</button>
+  </div>
+</section>
+
+<!-- 接水遊戲頁 -->
+<section id="waterScreen" class="screen">
+  <div class="camWrap">
+    <video id="wVideo" autoplay playsinline muted></video>
+    <canvas id="wCanvas"></canvas>
+    <div id="wCamMsg">啟動相機中…</div>
+  </div>
+  <div id="wHUD">
+    <div class="hw"><div class="hl">乾淨水滴</div><div id="wClean">0 / 20</div></div>
+    <div id="wDropLeft">剩餘 60 滴</div>
+    <div class="hw"><div class="hl">污水接到</div><div id="wDirty">0 / 3</div></div>
+  </div>
+  <div id="wPollMsg"><div class="pm1"></div><div class="pm2"></div></div>
+  <div id="wPurifyMsg"><div class="pu1"></div><div class="pu2"></div></div>
+</section>
+
+<!-- 接水結算頁 -->
+<section id="waterResultScreen" class="screen">
+  <div id="wWinLose" class="win">淨水成功!</div>
+  <div class="wStat">乾淨 <span id="wFinalClean" class="wc">0</span> 滴・污水 <span id="wFinalDirty" class="wd">0</span> 滴</div>
+  <div class="btnRow">
+    <button id="btnWaterReplay" class="btn cyan">再玩一次</button>
+    <button id="btnWaterHome" class="btn ghost">回首頁</button>
   </div>
 </section>
 
@@ -489,7 +542,7 @@ function speak(text){
 }
 
 /* ---------------- 畫面切換 ---------------- */
-const screens={start:'startScreen',ready:'readyScreen',game:'gameScreen',result:'resultScreen',soccer:'soccerScreen',soccerResult:'soccerResultScreen'};
+const screens={start:'startScreen',ready:'readyScreen',game:'gameScreen',result:'resultScreen',soccer:'soccerScreen',soccerResult:'soccerResultScreen',water:'waterScreen',waterResult:'waterResultScreen'};
 function show(name){
   Object.values(screens).forEach(id=>document.getElementById(id).classList.remove('active'));
   document.getElementById(screens[name]).classList.add('active');
@@ -1034,6 +1087,253 @@ async function startSoccerGame(){
   },900);
 }
 
+/* ================== 接水模式 ================== */
+const POLLUTANTS=[
+  {n:'鉛',s:'神經毒素・損害兒童大腦發育'},
+  {n:'砷',s:'一級致癌物・長期累積傷肝腎'},
+  {n:'汞',s:'重金屬・損害腎臟與神經系統'},
+  {n:'鎘',s:'重金屬・引起「痛痛病」骨質疏鬆'},
+  {n:'三鹵甲烷',s:'加氯消毒副產物・增加膀胱癌風險'},
+  {n:'亞硝酸鹽',s:'高濃度導致嬰兒缺氧血症'},
+  {n:'農藥殘留',s:'有機磷化合物・神經毒性'},
+  {n:'大腸桿菌',s:'糞便污染指標・引發腸胃感染'},
+  {n:'微塑膠',s:'塑膠碎片・累積於體內無法代謝'},
+  {n:'抗生素殘留',s:'藥物污染・助長超級細菌'},
+  {n:'苯',s:'工業溶劑・長期接觸致血癌'},
+  {n:'全氟化合物',s:'PFAS 永久性污染物・致癌'},
+  {n:'六價鉻',s:'工業廢水・損害消化道'},
+  {n:'隱孢子蟲',s:'寄生蟲卵囊・耐氯消毒・腸胃炎'},
+  {n:'石棉纖維',s:'致癌礦物纖維・傷害呼吸道'}
+];
+let wVid=null,wCvs=null,wCx=null,wRafId=null,wLastTs=-1;
+const wg={
+  cleanTarget:20,dirtyMax:3,
+  pool:[],poolIdx:0,
+  drops:[],cleanCaught:0,dirtyCaught:0,
+  phase:'idle',lastSpawn:0,spawnInterval:850,
+  pollTimer:null,purified:false,purifyTimer:null
+};
+
+function wBuildPool(){
+  const pool=[];
+  for(let i=0;i<30;i++) pool.push({type:'clean'});
+  for(let i=0;i<30;i++) pool.push({type:'dirty',pollIdx:i%POLLUTANTS.length});
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const p1=8+Math.floor(Math.random()*10), p2=28+Math.floor(Math.random()*10);
+  pool.splice(p1,0,{type:'purifier'}); pool.splice(p2+1,0,{type:'purifier'});
+  return pool;
+}
+
+function wUpdateHUD(){
+  document.getElementById('wClean').textContent=wg.cleanCaught+' / '+wg.cleanTarget;
+  document.getElementById('wDirty').textContent=wg.dirtyCaught+' / '+wg.dirtyMax;
+  const left=Math.max(0,(wg.pool.length-wg.poolIdx)+wg.drops.length);
+  document.getElementById('wDropLeft').textContent='剩餘 '+left+' 滴';
+}
+
+function wShowPoll(p){
+  clearTimeout(wg.pollTimer);
+  const el=document.getElementById('wPollMsg');
+  el.querySelector('.pm1').textContent='⚠ 偵測到 '+p.n+'！';
+  el.querySelector('.pm2').textContent=p.s;
+  el.style.opacity='1';
+  wg.pollTimer=setTimeout(()=>{el.style.opacity='0';},2200);
+}
+
+function wShowPurify(){
+  clearTimeout(wg.purifyTimer);
+  const el=document.getElementById('wPurifyMsg');
+  el.querySelector('.pu1').textContent='✨ 已淨化！';
+  el.querySelector('.pu2').textContent='安麗 eSpring 啟動・所有水滴已淨化';
+  el.style.opacity='1';
+  wg.purifyTimer=setTimeout(()=>{el.style.opacity='0';},2500);
+}
+
+function wDrawDrop(x,y,r,type,opacity){
+  wCx.save();
+  if(type==='clean'){
+    const g=wCx.createRadialGradient(x-r*.25,y-r*.3,r*.05,x,y,r);
+    g.addColorStop(0,'rgba(180,235,255,.95)'); g.addColorStop(1,'rgba(0,160,230,.7)');
+    wCx.fillStyle=g; wCx.shadowColor='#05D9E8'; wCx.shadowBlur=8;
+    wCx.beginPath(); wCx.arc(x,y,r,0,Math.PI*2); wCx.fill();
+    wCx.shadowBlur=0; wCx.fillStyle='rgba(255,255,255,.62)';
+    wCx.beginPath(); wCx.arc(x-r*.28,y-r*.32,r*.22,0,Math.PI*2); wCx.fill();
+  } else if(type==='dirty'){
+    wCx.globalAlpha=opacity;
+    const g=wCx.createRadialGradient(x-r*.15,y-r*.2,r*.05,x,y,r);
+    g.addColorStop(0,'rgba(80,60,15,1)'); g.addColorStop(1,'rgba(15,10,3,1)');
+    wCx.fillStyle=g; wCx.shadowColor='rgba(60,45,5,.6)'; wCx.shadowBlur=5;
+    wCx.beginPath(); wCx.arc(x,y,r,0,Math.PI*2); wCx.fill();
+    wCx.shadowBlur=0; wCx.strokeStyle='rgba(120,90,15,.35)'; wCx.lineWidth=1.5; wCx.stroke();
+  } else {
+    wDrawPurifierItem(x,y,r);
+  }
+  wCx.restore();
+}
+
+function wDrawPurifierItem(x,y,r){
+  const w=r*2.2,h=r*2.8;
+  wCx.shadowColor='rgba(5,217,232,.85)'; wCx.shadowBlur=16;
+  wCx.fillStyle='#eef8ff'; wCx.strokeStyle='rgba(5,200,230,.9)'; wCx.lineWidth=2;
+  wCx.beginPath();
+  if(wCx.roundRect) wCx.roundRect(x-w/2,y-h/2,w,h,r*.3); else wCx.rect(x-w/2,y-h/2,w,h);
+  wCx.fill(); wCx.stroke();
+  wCx.shadowBlur=0;
+  wCx.strokeStyle='rgba(5,170,210,.5)'; wCx.lineWidth=1.5;
+  wCx.beginPath(); wCx.moveTo(x-w/2,y-h*.08); wCx.lineTo(x+w/2,y-h*.28); wCx.stroke();
+  wCx.fillStyle='#007ab8'; wCx.font='bold '+Math.round(r*.72)+'px sans-serif';
+  wCx.textAlign='center'; wCx.textBaseline='middle';
+  wCx.fillText('UV',x,y-h*.15);
+  wCx.fillStyle='#05aad4'; wCx.font='bold '+Math.round(r*.46)+'px sans-serif';
+  wCx.fillText('eSpring',x,y+h*.22);
+}
+
+function wDrawCup(x,y,r){
+  const w=r*2.2,h=r*1.5;
+  wCx.save();
+  wCx.strokeStyle='rgba(5,217,232,.9)'; wCx.lineWidth=3;
+  wCx.shadowColor='rgba(5,217,232,.5)'; wCx.shadowBlur=8;
+  wCx.beginPath();
+  wCx.moveTo(x-w/2,y-h/2); wCx.lineTo(x-w*.35,y+h/2);
+  wCx.lineTo(x+w*.35,y+h/2); wCx.lineTo(x+w/2,y-h/2);
+  wCx.stroke();
+  wCx.beginPath(); wCx.moveTo(x-w/2,y-h/2); wCx.lineTo(x+w/2,y-h/2); wCx.stroke();
+  wCx.restore();
+}
+
+function wDrawPurifierCup(x,y,r){
+  const w=r*2.4,h=r*2.6;
+  wCx.save();
+  wCx.fillStyle='rgba(235,248,255,.88)'; wCx.strokeStyle='rgba(5,217,232,.95)'; wCx.lineWidth=2.5;
+  wCx.shadowColor='rgba(5,217,232,.8)'; wCx.shadowBlur=14;
+  wCx.beginPath();
+  if(wCx.roundRect) wCx.roundRect(x-w/2,y-h/2,w,h,r*.3); else wCx.rect(x-w/2,y-h/2,w,h);
+  wCx.fill(); wCx.stroke();
+  wCx.shadowBlur=0; wCx.fillStyle='#0088bb';
+  wCx.font='bold '+Math.round(r*.58)+'px sans-serif';
+  wCx.textAlign='center'; wCx.textBaseline='middle';
+  wCx.fillText('eS',x,y);
+  wCx.restore();
+}
+
+function wEnd(win){
+  wg.phase='ended';
+  cancelAnimationFrame(wRafId);
+  if(wVid&&wVid.srcObject) wVid.srcObject.getTracks().forEach(t=>t.stop());
+  clearTimeout(wg.pollTimer); clearTimeout(wg.purifyTimer);
+  document.getElementById('wPollMsg').style.opacity='0';
+  document.getElementById('wPurifyMsg').style.opacity='0';
+  const el=document.getElementById('wWinLose');
+  el.textContent=win?'淨水成功!':'水質污染!'; el.className=win?'win':'lose';
+  document.getElementById('wFinalClean').textContent=wg.cleanCaught;
+  document.getElementById('wFinalDirty').textContent=wg.dirtyCaught;
+  sfxLevel(); show('waterResult');
+}
+
+function wLoop(ts){
+  wRafId=requestAnimationFrame(wLoop);
+  if(!landmarker||!wVid||wVid.readyState<2) return;
+  if(ts===wLastTs) return;
+  const dt=wLastTs<0?16:Math.min(50,ts-wLastTs);
+  wLastTs=ts;
+  const res=landmarker.detectForVideo(wVid,ts);
+  const W=wCvs.width,H=wCvs.height;
+  wCx.clearRect(0,0,W,H);
+  const lm=res.landmarks&&res.landmarks[0];
+  document.getElementById('wCamMsg').style.display=lm?'none':'flex';
+  if(wg.phase!=='running') return;
+  const now=performance.now();
+  // Spawn next drop from pool
+  if(wg.poolIdx<wg.pool.length&&now-wg.lastSpawn>wg.spawnInterval){
+    const tmpl=wg.pool[wg.poolIdx++];
+    wg.drops.push({
+      ...tmpl,
+      x:(0.1+Math.random()*.8)*W,
+      y:-25,
+      vy:2.4+Math.random()*1.5,
+      r:15+Math.random()*10,
+      opacity:tmpl.type==='dirty'?(.1+Math.random()*.9):1
+    });
+    wg.lastSpawn=now;
+  }
+  // Wrist positions (mirror-compensated: 1-lm.x to match CSS scaleX(-1))
+  let lwx=W*.35,lwy=H*.6,rwx=W*.65,rwy=H*.6;
+  if(lm){
+    lwx=(1-lm[LM.lWr].x)*W; lwy=lm[LM.lWr].y*H;
+    rwx=(1-lm[LM.rWr].x)*W; rwy=lm[LM.rWr].y*H;
+  }
+  const cupR=26;
+  // Update and draw drops (iterate backwards for safe splice)
+  for(let i=wg.drops.length-1;i>=0;i--){
+    const d=wg.drops[i];
+    d.y+=d.vy*(dt/16.67);
+    if(!d.caught){
+      const hr=d.r+cupR+8;
+      if(Math.hypot(d.x-lwx,d.y-lwy)<hr||Math.hypot(d.x-rwx,d.y-rwy)<hr){
+        d.caught=true;
+        if(d.type==='purifier'){
+          wg.purified=true; wShowPurify();
+        } else if(d.type==='clean'||wg.purified){
+          wg.cleanCaught++;
+          if(wg.cleanCaught>=wg.cleanTarget){ wUpdateHUD(); wEnd(true); return; }
+        } else {
+          wg.dirtyCaught++;
+          wShowPoll(POLLUTANTS[d.pollIdx%POLLUTANTS.length]);
+          if(wg.dirtyCaught>=wg.dirtyMax){ wUpdateHUD(); wEnd(false); return; }
+        }
+        wUpdateHUD(); wg.drops.splice(i,1); continue;
+      }
+    }
+    if(d.y>H+30){
+      wg.drops.splice(i,1);
+      if(wg.poolIdx>=wg.pool.length&&wg.drops.length===0){ wEnd(wg.cleanCaught>=wg.cleanTarget); return; }
+      continue;
+    }
+    wDrawDrop(d.x,d.y,d.r,d.type,d.opacity);
+  }
+  // Draw skeleton and cups
+  if(lm){
+    wCx.save();
+    wCx.lineWidth=2; wCx.strokeStyle='rgba(5,217,232,.22)'; wCx.shadowBlur=0;
+    SKELETON.forEach(([a,b])=>{
+      wCx.beginPath();
+      wCx.moveTo((1-lm[a].x)*W,lm[a].y*H);
+      wCx.lineTo((1-lm[b].x)*W,lm[b].y*H);
+      wCx.stroke();
+    });
+    wCx.restore();
+    if(wg.purified){ wDrawPurifierCup(lwx,lwy,cupR); wDrawPurifierCup(rwx,rwy,cupR); }
+    else { wDrawCup(lwx,lwy,cupR); wDrawCup(rwx,rwy,cupR); }
+  }
+}
+
+async function startWaterGame(){
+  wg.phase='idle'; wg.pool=wBuildPool(); wg.poolIdx=0;
+  wg.drops=[]; wg.cleanCaught=0; wg.dirtyCaught=0;
+  wg.purified=false; wg.lastSpawn=0;
+  clearTimeout(wg.pollTimer); clearTimeout(wg.purifyTimer);
+  show('ready');
+  document.getElementById('readyName').textContent=state.player.name+'・接水準備';
+  try{
+    if(!landmarker){ document.getElementById('countNum').textContent='載入中'; await initLandmarker(); }
+    wVid=document.getElementById('wVideo'); wCvs=document.getElementById('wCanvas');
+    wCx=wCvs.getContext('2d');
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:1280,height:720},audio:false});
+    wVid.srcObject=stream; await wVid.play();
+    wCvs.width=wVid.videoWidth; wCvs.height=wVid.videoHeight;
+  }catch(e){ alert('無法啟動相機:'+e.message); show('start'); return; }
+  wUpdateHUD();
+  let n=3; const cn=document.getElementById('countNum'); cn.textContent='3'; show('ready');
+  const iv=setInterval(()=>{
+    n--; beep(440,.1);
+    if(n<=0){
+      clearInterval(iv); cn.textContent='GO'; beep(880,.2);
+      show('water'); wLastTs=-1; wg.phase='running'; wg.lastSpawn=performance.now();
+      wRafId=requestAnimationFrame(wLoop);
+    } else cn.textContent=n;
+  },900);
+}
+
 /* ---------------- 事件 ---------------- */
 document.getElementById('btnStart').addEventListener('click',()=>{
   const name=document.getElementById('inName').value.trim();
@@ -1043,6 +1343,7 @@ document.getElementById('btnStart').addEventListener('click',()=>{
   state.player={name,phone};
   audio(); // 解鎖音訊
   if(state.mode==='soccer') startSoccerGame();
+  else if(state.mode==='water') startWaterGame();
   else startGame();
 });
 document.getElementById('voiceToggle').addEventListener('click',function(){
@@ -1052,20 +1353,31 @@ document.getElementById('btnModeFitness').addEventListener('click',function(){
   state.mode='fitness';
   this.classList.add('active');
   document.getElementById('btnModeSoccer').classList.remove('active');
+  document.getElementById('btnModeWater').classList.remove('active');
 });
 document.getElementById('btnModeSoccer').addEventListener('click',function(){
   state.mode='soccer';
   this.classList.add('active');
   document.getElementById('btnModeFitness').classList.remove('active');
+  document.getElementById('btnModeWater').classList.remove('active');
+});
+document.getElementById('btnModeWater').addEventListener('click',function(){
+  state.mode='water';
+  this.classList.add('active');
+  document.getElementById('btnModeFitness').classList.remove('active');
+  document.getElementById('btnModeSoccer').classList.remove('active');
 });
 document.getElementById('btnReplay').addEventListener('click',startGame);
 document.getElementById('btnHome').addEventListener('click',()=>show('start'));
 document.getElementById('btnSoccerReplay').addEventListener('click',startSoccerGame);
 document.getElementById('btnSoccerHome').addEventListener('click',()=>show('start'));
+document.getElementById('btnWaterReplay').addEventListener('click',startWaterGame);
+document.getElementById('btnWaterHome').addEventListener('click',()=>show('start'));
 
 window.addEventListener('beforeunload',()=>{
   if(video&&video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
   if(sVid&&sVid.srcObject) sVid.srcObject.getTracks().forEach(t=>t.stop());
+  if(wVid&&wVid.srcObject) wVid.srcObject.getTracks().forEach(t=>t.stop());
 });
 </script>
 </body>
