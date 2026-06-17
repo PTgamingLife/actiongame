@@ -885,24 +885,17 @@ function scEnd(){
 
 function drawSoccerBall(cx,cy,r,spin){
   sCx.save();
-  sCx.translate(cx,cy); sCx.rotate(spin);
-  // Shadow
-  sCx.beginPath(); sCx.arc(r*0.08,r*0.08,r,0,Math.PI*2);
-  sCx.fillStyle='rgba(0,0,0,0.28)'; sCx.fill();
-  // White body
-  sCx.beginPath(); sCx.arc(0,0,r,0,Math.PI*2);
-  sCx.fillStyle='#f0f0f0';
-  sCx.shadowColor='rgba(255,255,255,0.35)'; sCx.shadowBlur=r*0.4;
-  sCx.fill(); sCx.shadowBlur=0;
-  sCx.strokeStyle='#bbb'; sCx.lineWidth=r*0.04; sCx.stroke();
-  // Black pentagon patches
-  [[0,-0.58],[0.55,-0.18],[0.34,0.47],[-0.34,0.47],[-0.55,-0.18]].forEach(([px,py])=>{
-    sCx.beginPath(); sCx.arc(px*r,py*r,r*0.22,0,Math.PI*2);
-    sCx.fillStyle='#111'; sCx.fill();
-  });
-  // Highlight
-  sCx.beginPath(); sCx.arc(-r*0.27,-r*0.3,r*0.14,0,Math.PI*2);
-  sCx.fillStyle='rgba(255,255,255,0.62)'; sCx.fill();
+  sCx.translate(cx,cy);
+  sCx.scale(-1,1);   // 抵消外層鏡像，讓 emoji 方向正確
+  sCx.rotate(spin);
+  sCx.shadowColor='rgba(0,0,0,0.55)';
+  sCx.shadowBlur=r*0.5;
+  sCx.shadowOffsetX=r*0.06;
+  sCx.shadowOffsetY=r*0.1;
+  sCx.font=Math.round(r*2.1)+'px serif';
+  sCx.textAlign='center';
+  sCx.textBaseline='middle';
+  sCx.fillText('⚽',0,0);
   sCx.restore();
 }
 
