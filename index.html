@@ -557,7 +557,7 @@ async function initLandmarker(){
   const fileset=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm");
   landmarker=await PoseLandmarker.createFromOptions(fileset,{
     baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate:"GPU" },
-    runningMode:"VIDEO", numPoses:1
+    runningMode:"VIDEO", numPoses:4
   });
 }
 
@@ -577,11 +577,12 @@ function bodyVisible(lm){
   return v/keys.length>0.5;
 }
 
-function drawSkeleton(lm){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+const PERSON_COLORS=['#05D9E8','#26de81','#FFD23F','#fd79a8'];
+function drawSkeleton(lm,colorIdx=0){
+  const col=PERSON_COLORS[colorIdx%PERSON_COLORS.length];
   ctx.save();
-  ctx.translate(canvas.width,0); ctx.scale(-1,1); // 鏡像對齊畫面
-  ctx.lineWidth=4; ctx.strokeStyle='#05D9E8'; ctx.shadowColor='#05D9E8'; ctx.shadowBlur=8;
+  ctx.translate(canvas.width,0); ctx.scale(-1,1);
+  ctx.lineWidth=4; ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8;
   SKELETON.forEach(([a,b])=>{
     ctx.beginPath();
     ctx.moveTo(lm[a].x*canvas.width,lm[a].y*canvas.height);
@@ -593,6 +594,14 @@ function drawSkeleton(lm){
   ctx.restore();
 }
 
+/* ---------------- 多人 per-person 動作狀態 ---------------- */
+let personExStates=[];
+function resetPersonExStates(){ personExStates=[]; }
+function getPersonExState(idx,ex){
+  if(!personExStates[idx]){ const ps={}; ex.reset.call(ps); personExStates[idx]=ps; }
+  return personExStates[idx];
+}
+
 /* ---------------- 遊戲迴圈 ---------------- */
 function currentTask(){ return state.seq[state.taskIdx]; }
 
@@ -602,18 +611,25 @@ function loop(){
   const ts=performance.now();
   if(ts===lastTs) return; lastTs=ts;
   const res=landmarker.detectForVideo(video,ts);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   if(!res.landmarks||res.landmarks.length===0){ setCamMsg('看不到人・請站到鏡頭前'); return; }
-  const lm=res.landmarks[0];
-  drawSkeleton(lm);
-  if(!bodyVisible(lm)){ setCamMsg('請站遠一點・讓鏡頭拍到全身'); return; }
+  // 畫出所有人的骨架（各自顏色）
+  res.landmarks.forEach((lm,i)=>drawSkeleton(lm,i));
+  const visibles=res.landmarks.filter(lm=>bodyVisible(lm));
+  if(visibles.length===0){ setCamMsg('請站遠一點・讓鏡頭拍到全身'); return; }
   setCamMsg('');
-  if(state.running) drawBalloon(lm);
-
+  if(state.running) drawBalloon(visibles[0]);
   const task=currentTask(); if(!task||!state.running) return;
   const ex=EXERCISES[task.ex];
-  const out=ex.process(lm);
-  setRing(out.progress);
-  if(out.rep){ onRep(task,out.quality); }
+  let firstProgress=0;
+  visibles.forEach((lm,vi)=>{
+    const origIdx=res.landmarks.indexOf(lm);
+    const ps=getPersonExState(origIdx,ex);
+    const out=ex.process.call(ps,lm);
+    if(vi===0) firstProgress=out.progress;
+    if(out.rep) onRep(task,out.quality);
+  });
+  setRing(firstProgress);
 }
 
 function spawnStars(quality){
@@ -814,7 +830,7 @@ function figureSVG(exKey){
 }
 function loadTaskUI(){
   const task=currentTask();
-  const ex=EXERCISES[task.ex]; ex.reset();
+  const ex=EXERCISES[task.ex]; ex.reset(); resetPersonExStates();
   document.getElementById('exEmoji').textContent=ex.emoji;
   document.getElementById('exName').textContent=ex.name;
   document.getElementById('repNum').textContent='0';
@@ -859,7 +875,7 @@ async function startGame(){
   state.levelIdx=0; state.taskIdx=0;
   state.seq=buildSequence(LEVELS[0]);
   state.running=false;
-  resetBalloon();
+  resetBalloon(); resetPersonExStates();
   show('ready');
   document.getElementById('readyName').textContent=state.player.name+'・準備';
   // 倒數同時啟動相機與模型
