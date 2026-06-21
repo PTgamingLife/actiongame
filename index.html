@@ -557,7 +557,7 @@ async function initLandmarker(){
   const fileset=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm");
   landmarker=await PoseLandmarker.createFromOptions(fileset,{
     baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate:"GPU" },
-    runningMode:"VIDEO", numPoses:4
+    runningMode:"VIDEO", numPoses:2
   });
 }
 
@@ -577,9 +577,23 @@ function bodyVisible(lm){
   return v/keys.length>0.5;
 }
 
-function deduplicateLandmarks(landmarks, minDist=0.15){
+function isCoherentPose(lm){
+  // 解剖合理性：頭→肩→髖→膝→踝 必須由上到下，否則是關節點混搭的幽靈骨架
+  const shY =(lm[LM.lSh].y +lm[LM.rSh].y)/2;
+  const hipY=(lm[LM.lHip].y+lm[LM.rHip].y)/2;
+  const knY =(lm[LM.lKn].y +lm[LM.rKn].y)/2;
+  const anY =(lm[LM.lAn].y +lm[LM.rAn].y)/2;
+  return lm[LM.nose].y < shY+0.05 &&
+         shY < hipY+0.05 &&
+         hipY < knY+0.05 &&
+         knY  < anY+0.05;
+}
+
+function deduplicateLandmarks(landmarks, minDist=0.18){
+  // 先濾掉解剖不合理（頭腳混搭）的骨架，再去重（髖中心太近 = 同一人）
+  const coherent=landmarks.filter(isCoherentPose);
   const kept=[];
-  for(const lm of landmarks){
+  for(const lm of coherent){
     const cx=(lm[LM.lHip].x+lm[LM.rHip].x)/2;
     const cy=(lm[LM.lHip].y+lm[LM.rHip].y)/2;
     const dup=kept.some(a=>{
