@@ -264,6 +264,7 @@ h1.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(28px,7
     </div>
     <button id="btnStart" class="btn cyan" style="width:100%;margin-top:16px">開始挑戰</button>
     <div id="voiceToggle" class="toggle on"><div class="box"></div>語音報數</div>
+    <div id="musicToggle" class="toggle on"><div class="box"></div>背景音樂</div>
   </div>
   <div class="hint">需要相機權限・建議裝置架在約 2 公尺外拍到全身<br>橫向、光線充足效果最好</div>
 </section>
@@ -514,6 +515,7 @@ function buildSequence(level){
 const state={
   player:{name:'',phone:''},
   voice:true,
+  music:true,
   mode:'fitness',
   levelIdx:0,
   seq:[], taskIdx:0,
@@ -522,7 +524,7 @@ const state={
 };
 
 /* ---------------- 音效(Web Audio) ---------------- */
-let actx=null;
+let actx=null,musicTimer=null,musicGain=null,musicStep=0;
 function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
 function beep(freq,dur,type='sine',vol=0.2){
   try{
@@ -537,6 +539,45 @@ function sfxGood(){ beep(880,0.12,'triangle'); setTimeout(()=>beep(1320,0.12,'tr
 function sfxOk(){ beep(660,0.12,'sine'); }
 function sfxBad(){ beep(180,0.18,'sawtooth',0.15); }
 function sfxLevel(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.18,'triangle'),i*120)); }
+function playMusicNote(freq,dur=0.22){
+  if(!freq||!musicGain) return;
+  const c=audio(), o=c.createOscillator(), g=c.createGain();
+  o.type='triangle'; o.frequency.value=freq;
+  o.connect(g); g.connect(musicGain);
+  g.gain.setValueAtTime(0.0001,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.16,c.currentTime+0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+dur);
+  o.start(); o.stop(c.currentTime+dur+0.02);
+}
+function startMusic(){
+  if(!state.music||musicTimer) return;
+  const c=audio();
+  musicGain=c.createGain();
+  musicGain.gain.value=0.16;
+  musicGain.connect(c.destination);
+  const melody=[262,330,392,440,392,330,294,330,392,330,262,0,262,330,392,523,494,392,330,294,262,0];
+  const bass=[131,0,196,0,175,0,196,0];
+  musicStep=0;
+  const tick=()=>{
+    if(!state.music||!musicGain){ stopMusic(); return; }
+    playMusicNote(melody[musicStep%melody.length],0.2);
+    if(musicStep%2===0) playMusicNote(bass[Math.floor(musicStep/2)%bass.length],0.28);
+    musicStep++;
+    musicTimer=setTimeout(tick,260);
+  };
+  tick();
+}
+function stopMusic(){
+  clearTimeout(musicTimer); musicTimer=null; musicStep=0;
+  if(musicGain){
+    try{
+      const c=audio();
+      musicGain.gain.cancelScheduledValues(c.currentTime);
+      musicGain.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.12);
+      setTimeout(()=>{ try{ musicGain&&musicGain.disconnect(); }catch(e){} musicGain=null; },150);
+    }catch(e){ musicGain=null; }
+  }
+}
 function speak(text){
   if(!state.voice||!('speechSynthesis' in window)) return;
   try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='zh-TW'; u.rate=1.15; speechSynthesis.speak(u); }catch(e){}
@@ -795,6 +836,7 @@ function nextTask(){
 
 function finishLevel(){
   state.running=false;
+  stopMusic();
   cancelAnimationFrame(rafId);
   if(video&&video.srcObject){ video.srcObject.getTracks().forEach(t=>t.stop()); }
   const acc=state.totalReps?Math.round(state.goodReps/state.totalReps*100):0;
@@ -902,6 +944,7 @@ async function loadLeaderboard(){
 
 /* ---------------- 流程控制 ---------------- */
 async function startGame(){
+  startMusic();
   state.score=0; state.totalReps=0; state.goodReps=0;
   state.levelIdx=0; state.taskIdx=0;
   state.seq=buildSequence(LEVELS[0]);
@@ -914,6 +957,7 @@ async function startGame(){
     if(!landmarker){ document.getElementById('countNum').textContent='載入中'; await initLandmarker(); }
     await startCamera();
   }catch(e){
+    stopMusic();
     alert('無法啟動相機或模型:'+e.message+'\n請確認相機權限,且用 https 開啟(GitHub Pages 即可)');
     show('start'); return;
   }
@@ -979,6 +1023,7 @@ function scFlash(type){
 
 function scEnd(success=true){
   sc.phase='idle';
+  stopMusic();
   cancelAnimationFrame(sRafId);
   if(sVid&&sVid.srcObject) sVid.srcObject.getTracks().forEach(t=>t.stop());
   document.getElementById('sFinalSaves').textContent=sc.dodges;
@@ -1151,6 +1196,7 @@ function sLoop(){
 }
 
 async function startSoccerGame(){
+  startMusic();
   scReset();
   show('ready');
   document.getElementById('readyName').textContent=state.player.name+'・開車準備';
@@ -1163,6 +1209,7 @@ async function startSoccerGame(){
     sVid.srcObject=stream; await sVid.play();
     sCvs.width=sVid.videoWidth||1280; sCvs.height=sVid.videoHeight||720;
   }catch(e){
+    stopMusic();
     alert('無法啟動相機:'+e.message); show('start'); return;
   }
   let n=3; const cn=document.getElementById('countNum'); cn.textContent='3'; show('ready');
@@ -1377,6 +1424,7 @@ function wDrawPurifierCup(x,y,r){
 
 function wEnd(win){
   wg.phase='ended';
+  stopMusic();
   wg.elapsed=performance.now()-wg.startTime;
   cancelAnimationFrame(wRafId);
   if(wVid&&wVid.srcObject) wVid.srcObject.getTracks().forEach(t=>t.stop());
@@ -1472,6 +1520,7 @@ function wLoop(ts){
 }
 
 async function startWaterGame(){
+  startMusic();
   wg.phase='idle'; wg.pool=wBuildPool(); wg.poolIdx=0;
   wg.drops=[]; wg.cleanCaught=0; wg.dirtyCaught=0;
   wg.purified=false; wg.lastSpawn=0; wg.startTime=0; wg.elapsed=0;
@@ -1485,7 +1534,7 @@ async function startWaterGame(){
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:1280,height:720},audio:false});
     wVid.srcObject=stream; await wVid.play();
     wCvs.width=wVid.videoWidth; wCvs.height=wVid.videoHeight;
-  }catch(e){ alert('無法啟動相機:'+e.message); show('start'); return; }
+  }catch(e){ stopMusic(); alert('無法啟動相機:'+e.message); show('start'); return; }
   wUpdateHUD();
   let n=3; const cn=document.getElementById('countNum'); cn.textContent='3'; show('ready');
   const iv=setInterval(()=>{
@@ -1512,6 +1561,10 @@ document.getElementById('btnStart').addEventListener('click',()=>{
 });
 document.getElementById('voiceToggle').addEventListener('click',function(){
   this.classList.toggle('on'); state.voice=this.classList.contains('on');
+});
+document.getElementById('musicToggle').addEventListener('click',function(){
+  this.classList.toggle('on'); state.music=this.classList.contains('on');
+  if(!state.music) stopMusic();
 });
 document.getElementById('btnModeFitness').addEventListener('click',function(){
   state.mode='fitness';
