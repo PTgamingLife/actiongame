@@ -973,6 +973,7 @@ async function startGame(){
 /* ================== 開車模式 ================== */
 let sVid=null,sCvs=null,sCx=null,sRafId=null,sLastTs=-1;
 const DRIVE_LANES=[0.28,0.50,0.72];
+const DRIVE_JUMP_MS=2000;
 const DRIVE_TRUCK_FRAMES=[
   'assets/drive/firetruck-1.png',
   'assets/drive/firetruck-2.png',
@@ -1078,7 +1079,7 @@ function scDrawFireTruck(lane,ducking){
   const W=sCvs.width, H=sCvs.height;
   const now=performance.now();
   const jumping=now<sc.jumpUntil;
-  const jumpT=jumping?1-((sc.jumpUntil-now)/1000):0;
+  const jumpT=jumping?1-((sc.jumpUntil-now)/DRIVE_JUMP_MS):0;
   const lift=jumping?Math.sin(jumpT*Math.PI)*H*0.13:0;
   const scale=jumping?1+Math.sin(jumpT*Math.PI)*0.16:1;
   const x=scLaneX(lane,H*0.79), y=H*(ducking?0.83:0.80)-lift;
@@ -1141,7 +1142,7 @@ function scPoseControl(lm){
   const ducking=hipY>0.66||(kneeY-hipY)<0.12||(hipY-shoulderY)<0.18;
   if(ducking&&!sc.wasDucking) sc.duckStart=now;
   if(!ducking&&sc.wasDucking&&now-sc.duckStart>120&&now-sc.lastJump>900){
-    sc.jumpUntil=now+1000;
+    sc.jumpUntil=now+DRIVE_JUMP_MS;
     sc.lastJump=now;
     sfxGood();
   }
