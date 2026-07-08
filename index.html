@@ -944,12 +944,12 @@ const DRIVE_OBSTACLES=[
 const sc={
   totalTime:150000,spawnEvery:4000,hitLimit:5,
   dodges:0,hits:0,phase:'idle',flashTimer:null,startTime:0,lastSpawn:0,
-  playerLane:1,ducking:false,obstacles:[]
+  playerLane:1,ducking:false,wasDucking:false,duckStart:0,jumpUntil:0,lastJump:0,obstacles:[]
 };
 
 function scReset(){
   sc.dodges=0; sc.hits=0; sc.phase='idle'; sc.startTime=0; sc.lastSpawn=0;
-  sc.playerLane=1; sc.ducking=false; sc.obstacles=[];
+  sc.playerLane=1; sc.ducking=false; sc.wasDucking=false; sc.duckStart=0; sc.jumpUntil=0; sc.lastJump=0; sc.obstacles=[];
   clearTimeout(sc.flashTimer);
 }
 
@@ -1017,7 +1017,7 @@ function scDrawRoad(){
   sCx.fillStyle='rgba(255,255,255,0.88)';
   sCx.font=Math.round(W*0.026)+'px "Noto Sans TC", sans-serif';
   sCx.textAlign='center';
-  sCx.fillText('身體左/右移動換車道，蹲下閃避空中障礙',W*0.5,H*0.09);
+  sCx.fillText('身體左/右換車道，蹲下閃空中障礙，蹲下再跳起可飛越地面障礙',W*0.5,H*0.09);
   sCx.restore();
 }
 
@@ -1031,11 +1031,24 @@ function scLaneX(lane,y){
 
 function scDrawFireTruck(lane,ducking){
   const W=sCvs.width, H=sCvs.height;
-  const x=scLaneX(lane,H*0.79), y=H*(ducking?0.83:0.80);
+  const now=performance.now();
+  const jumping=now<sc.jumpUntil;
+  const jumpT=jumping?1-((sc.jumpUntil-now)/1000):0;
+  const lift=jumping?Math.sin(jumpT*Math.PI)*H*0.13:0;
+  const scale=jumping?1+Math.sin(jumpT*Math.PI)*0.16:1;
+  const x=scLaneX(lane,H*0.79), y=H*(ducking?0.83:0.80)-lift;
   const frame=DRIVE_TRUCK_FRAMES[Math.floor(performance.now()/120)%DRIVE_TRUCK_FRAMES.length];
-  const w=W*(ducking?0.14:0.16), h=H*(ducking?0.17:0.20);
+  const w=W*(ducking?0.14:0.16)*scale, h=H*(ducking?0.17:0.20)*scale;
   sCx.save();
-  sCx.shadowColor='rgba(0,0,0,.45)'; sCx.shadowBlur=18; sCx.shadowOffsetY=10;
+  if(jumping){
+    const shadowY=H*0.84;
+    const shadowW=W*0.13*(1-Math.sin(jumpT*Math.PI)*0.34);
+    sCx.fillStyle='rgba(0,0,0,.22)';
+    sCx.beginPath();
+    sCx.ellipse(x,shadowY,shadowW,H*0.018,0,0,Math.PI*2);
+    sCx.fill();
+  }
+  sCx.shadowColor='rgba(0,0,0,.45)'; sCx.shadowBlur=18; sCx.shadowOffsetY=jumping?18:10;
   if(frame&&frame.complete&&frame.naturalWidth){
     const ratio=frame.naturalWidth/frame.naturalHeight;
     const drawW=Math.min(w,h*ratio);
@@ -1072,6 +1085,7 @@ function scDrawObstacle(o,now){
 
 function scPoseControl(lm){
   if(!lm) return;
+  const now=performance.now();
   const midX=1-((lm[LM.lSh].x+lm[LM.rSh].x+lm[LM.lHip].x+lm[LM.rHip].x)/4);
   if(midX<0.40) sc.playerLane=0;
   else if(midX>0.60) sc.playerLane=2;
@@ -1079,7 +1093,15 @@ function scPoseControl(lm){
   const hipY=(lm[LM.lHip].y+lm[LM.rHip].y)/2;
   const kneeY=(lm[LM.lKn].y+lm[LM.rKn].y)/2;
   const shoulderY=(lm[LM.lSh].y+lm[LM.rSh].y)/2;
-  sc.ducking=hipY>0.66||(kneeY-hipY)<0.12||(hipY-shoulderY)<0.18;
+  const ducking=hipY>0.66||(kneeY-hipY)<0.12||(hipY-shoulderY)<0.18;
+  if(ducking&&!sc.wasDucking) sc.duckStart=now;
+  if(!ducking&&sc.wasDucking&&now-sc.duckStart>120&&now-sc.lastJump>900){
+    sc.jumpUntil=now+1000;
+    sc.lastJump=now;
+    sfxGood();
+  }
+  sc.wasDucking=ducking;
+  sc.ducking=ducking;
 }
 
 function sLoop(){
@@ -1112,7 +1134,8 @@ function sLoop(){
     const t=(now-o.born)/o.dur;
     if(!o.checked&&t>=0.82){
       o.checked=true;
-      const hit=o.lane===sc.playerLane&&(o.type==='ground'||!sc.ducking);
+      const jumping=now<sc.jumpUntil;
+      const hit=o.lane===sc.playerLane&&((o.type==='ground'&&!jumping)||(o.type==='air'&&!sc.ducking));
       if(hit){
         sc.hits++; sfxBad(); scFlash('goal');
         if(sc.hits>=sc.hitLimit){ scHUD(); scEnd(false); return; }
